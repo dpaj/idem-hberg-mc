@@ -5,15 +5,24 @@ import scipy.optimize as spop
 from scipy.integrate import quad
 from scipy.interpolate import interp1d
 
+from time import time
+
+start_time = time()
+
 hbar = 6.626070040e-34 #SI units
 
-L = 4
+moment_visualization_scale_factor = 0.1
+
+L = 6
 S = 2.5
 D = 0
 J = 1.0
 h = np.array([0,0,0])
-t_debye = 100.0 #kelvin, material specific
-v_sound = 1000.0 #m/s, material specific
+t_debye = 6*2*J*S*S #number of nearest neighbors, factor of 2 for spin flip, superexchange energy
+t_debye = 6*2*J*1*S #number of nearest neighbors, factor of 2 for spin flip, superexchange energy
+t_debye = 2*J*S
+#t_debye = t_debye +2*D*S*S  # add anisotropy term to debye, really this depends on the direction, have to think about it...
+
 
 Sx = np.zeros((L,L,L))
 Sy = np.zeros((L,L,L))
@@ -70,6 +79,8 @@ def Ecalc(x,i,j,k):
     Sy_ijk = S*np.sin(theta)*np.sin(phi)
     Sz_ijk = S*np.cos(theta)
     Energy_ijk = 0
+
+    Energy_ijk += -1*Sx_ijk**2
 
     #if Type[i,j,k]== 1:
     #    Energy_ijk += DMn[0]*Sx_ijk**2 + DMn[1]*Sy_ijk**2 + DMn[2]*Sz_ijk**2
@@ -181,17 +192,18 @@ print(phonon_prefactor(10,100))
 
 
 
-E = np.linspace(1e-6,t_debye*2,500)
+E = np.linspace(1e-6,t_debye,500)
 
-t = 0.1
+t = 200
 state_probability = np.zeros(np.shape(E))
 farfle = np.zeros(np.shape(E))
 cdf = np.zeros(np.shape(E))
 for i, e_ in enumerate(E):
-    print(i)
+    
     state_probability[i] = phonon_probability(e_,t)
     farfle[i] = phonon_energy_spectral_density(e_,t)
     cdf[i], err = phonon_cdf(e_,t) #quad(phonon_probability, 0, e_, args=(t))
+    print(i, cdf[i],err)
 
 
 
@@ -238,6 +250,7 @@ def NonMinEcalc(x, NonMinE, i, j, k):
 
 
 Energy_list = []
+Energy_list.append(np.sum(Energy))
 #now do the energy minimization procedure
 for shmoo in range(0,10):
     for i in range(0,L):
@@ -271,6 +284,32 @@ for shmoo in range(0,10):
 
 
 print(Energy_list)
-print(-L**3*2*J*S*S*3)
+print(-L**3*2*J*S*S*3, -L**3*2*J*S*S*3-L**3*2*D*S*S)
 print(phonon_energy)
-#plt.show()
+
+fig = plt.figure()
+ax = fig.add_subplot(111, projection='3d')
+
+#plot solution
+for i in range(0,L):
+    for j in range(0,L):
+        for k in range(0,L):
+            PairCorrxa[i,j,k], PairCorrya[i,j,k], PairCorrza[i,j,k], PairCorrxb[i,j,k], PairCorryb[i,j,k], PairCorrzb[i,j,k], PairCorrxc[i,j,k], PairCorryc[i,j,k], PairCorrzc[i,j,k] = PairCorr(i,j,k)
+            ax.scatter(i, j, k, color = 'black', marker='o')
+            ax.plot([i,i+Sx[i,j,k]*moment_visualization_scale_factor], [j,j+Sy[i,j,k]*moment_visualization_scale_factor], [k,k+Sz[i,j,k]*moment_visualization_scale_factor], color = 'black')
+
+print("np.sum(PairCorrxa), np.sum(PairCorrya), np.sum(PairCorrza)")
+print(np.sum(PairCorrxa), np.sum(PairCorrya), np.sum(PairCorrza))
+
+print("np.sum(PairCorrxb), np.sum(PairCorryb), np.sum(PairCorrzb)")
+print(np.sum(PairCorrxb), np.sum(PairCorryb), np.sum(PairCorrzb))
+
+print("np.sum(PairCorrxc), np.sum(PairCorryc), np.sum(PairCorrzc)")
+print(np.sum(PairCorrxc), np.sum(PairCorryc), np.sum(PairCorrzc))
+
+end_time = time()
+
+print("time in minutes =", -(start_time-end_time)/60.0)
+
+
+plt.show()
