@@ -15,13 +15,14 @@ moment_visualization_scale_factor = 0.1
 
 L = 6
 S = 2
-D = 0
+D = 1
 J = 1
 h = np.array([0,0,0])
 t_debye = 6*2*J*S*S #number of nearest neighbors, factor of 2 for spin flip, superexchange energy
 #t_debye = 6*2*J*1*S #number of nearest neighbors, factor of 2 for spin flip, superexchange energy
 #t_debye = 2*J*S
 #t_debye = t_debye +2*D*S*S  # add anisotropy term to debye, really this depends on the direction, have to think about it...
+E0_single_spin = -np.abs(6*J*S**2)-D*S**2
 
 def PairCorr(i,j,k):
 
@@ -145,7 +146,8 @@ def phonon_probability(E,T):
 def unscaled_phonon_probability(E,T):
     if E < t_debye:
         #return E**2/(np.exp(E/T)-1)
-        return E**8/(np.exp(E/T)-1)
+        #return E**8/(np.exp(E/T)-1)
+        return np.exp(-(E-E0_single_spin)/T)
     else:
         return 0
 
@@ -188,8 +190,8 @@ PairCorrzc = np.zeros((L,L,L))
 for i in range(0,L):
     for j in range(0,L):
         for k in range(0,L):
-            Phi[i,j,k] = np.random.uniform(0, 2*np.pi)
-            Theta[i,j,k] = np.random.uniform(0, np.pi)
+            Phi[i,j,k] = np.random.rand()*2*np.pi
+            Theta[i,j,k] = np.arccos(1.0-2.0*np.random.rand())# asdf
             Sx[i,j,k] = S*np.sin(Theta[i,j,k])*np.cos(Phi[i,j,k])
             Sy[i,j,k] = S*np.sin(Theta[i,j,k])*np.sin(Phi[i,j,k])
             Sz[i,j,k] = S*np.cos(Theta[i,j,k])
@@ -254,7 +256,7 @@ def createInvCDF(t):
         plt.hist(random_energy_list, bins = 50)
     return inv_cdf
 
-t_list = np.linspace(10,0.1,20)
+t_list = np.linspace(10,2,20)
 Emin_list = []
 
 pcxa_list = []
@@ -294,7 +296,9 @@ for t in t_list:
 
 
                     NonMinE = Energy[i,j,k]+phonon_energy
-                    newtheta, newphi = spop.optimize.fmin(NonMinEcalc, maxfun=5000, maxiter=5000, ftol=1e-6, xtol=1e-5, x0=(Theta[i,j,k],Phi[i,j,k]), args = (NonMinE,i,j,k), disp=0)
+                    if NonMinE > 6*2*J*S*S:
+                        NonMinE = 6*2*J*S*S
+                    newtheta, newphi = spop.optimize.fmin(NonMinEcalc, maxfun=5000, maxiter=5000, ftol=1e-6, xtol=1e-5, x0=(np.arccos(1.0-2.0*np.random.rand()),np.random.rand()*np.pi), args = (NonMinE,i,j,k), disp=0)
                     Phi[i,j,k] = newphi
                     Theta[i,j,k] = newtheta
                     Sx[i,j,k] = S*np.sin(Theta[i,j,k])*np.cos(Phi[i,j,k])
