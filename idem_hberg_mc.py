@@ -13,7 +13,7 @@ hbar = 6.626070040e-34 #SI units
 
 moment_visualization_scale_factor = 0.1
 
-L = 6
+L = 4
 S = 2
 D = 1
 J = 1
