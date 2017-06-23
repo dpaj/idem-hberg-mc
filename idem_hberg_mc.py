@@ -4,24 +4,23 @@ import matplotlib.pyplot as plt
 import scipy.optimize as spop
 from scipy.integrate import quad
 from scipy.interpolate import interp1d
-
 from time import time
 
+#for timing of simulation
 start_time = time()
 
 hbar = 6.626070040e-34 #SI units
 
+#arbitrary number visualize spins
 moment_visualization_scale_factor = 0.1
 
-L = 4
-S = 2
-D = 1
-J = 1
-h = np.array([0,0,0])
-t_debye = 6*2*J*S*S #number of nearest neighbors, factor of 2 for spin flip, superexchange energy
-#t_debye = 6*2*J*1*S #number of nearest neighbors, factor of 2 for spin flip, superexchange energy
-#t_debye = 2*J*S
-#t_debye = t_debye +2*D*S*S  # add anisotropy term to debye, really this depends on the direction, have to think about it...
+L = 4 #length of 3-dimensional lattice, such that N = L^3
+S = 2 #spin number
+D = 1 #anisotropy value, in Kelvin units
+J = 1 #nearest neighbor isotropic superexchange parameter, in Kelvin units
+h = np.array([0,0,0]) #magnetic field, in Kelvin units
+t_debye = 6*2*J*S*S
+
 E0_single_spin = -np.abs(6*J*S**2)-D*S**2
 
 def PairCorr(i,j,k):
@@ -140,6 +139,7 @@ def NonMinEcalc(x, NonMinE, i, j, k):
     return (Ecalc(x,i,j,k)-NonMinE)**2
 
 #debye model for phonons
+#changed away from the phonon picture, now it is Boltzmann statistics
 def phonon_probability(E,T):
     return phonon_prefactor(E,T)*unscaled_phonon_probability(E,T)
 
