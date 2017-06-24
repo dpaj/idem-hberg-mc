@@ -1,145 +1,264 @@
+from time import time
+#for timing of simulation
+start_time = time()
+
 import numpy as np
 from mpl_toolkits.mplot3d import Axes3D
 import matplotlib.pyplot as plt
 import scipy.optimize as spop
 from scipy.integrate import quad
 from scipy.interpolate import interp1d
-from time import time
-
-#for timing of simulation
-start_time = time()
 
 hbar = 6.626070040e-34 #SI units
 
 #arbitrary number visualize spins
 moment_visualization_scale_factor = 0.1
 
-L = 4 #length of 3-dimensional lattice, such that N = L^3
+edge_length = 4 #length of 3-dimensional lattice, such that N = edge_length^3
 S = 2 #spin number
 D = 1 #anisotropy value, in Kelvin units
 J = 1 #nearest neighbor isotropic superexchange parameter, in Kelvin units
-h = np.array([0,0,0]) #magnetic field, in Kelvin units
+H = np.array([0,0,0]) #magnetic field, in Kelvin units
 t_debye = 6*2*J*S*S
 
 E0_single_spin = -np.abs(6*J*S**2)-D*S**2
 
-def PairCorr(i,j,k):
+class SpinLattice(object):
+	""" this class is defined to house the lattice parameters and variables
+	
+	s_x, s_y, s_z = these are edge_length**3 arrays of the cartesian components of the spins
+	phi = this is an edge_length**3 array of the azimuthal angles, each of which has a range of [0,2*pi]
+	theta = this is an edge_length**3 array of the elevation angle, each of which has a range of [0,pi]
+	energy = this is an edge_length**3 array of the site energies
 
-    if i < L-1:
-        PairCorrxa_ijk = Sx[i,j,k]*Sx[i+1,j,k]
-        PairCorrya_ijk = Sy[i,j,k]*Sy[i+1,j,k]
-        PairCorrza_ijk = Sz[i,j,k]*Sz[i+1,j,k]
+	"""
+	def __init__(self, edge_length=None, S=None, D=None, J=None, H=None, s_x=None, s_y=None, s_z=None, phi=None, theta=None, energy=None, total_energy=None):
+		self.edge_length = edge_length
+		self.D = D
+		self.S = S
+		self.J = J
+		self.H = H
+		self.s_x = np.zeros((edge_length,edge_length,edge_length))
+		self.s_y = np.zeros((edge_length,edge_length,edge_length))
+		self.s_z = np.zeros((edge_length,edge_length,edge_length))
+		self.phi = np.zeros((edge_length,edge_length,edge_length))
+		self.theta = np.zeros((edge_length,edge_length,edge_length))
+		self.energy = np.zeros((edge_length,edge_length,edge_length))
+		self.total_energy = 0
+	def get_L(self):
+		return self.edge_length
+	def get_S(self):
+		return self.S
+	def get_D(self):
+		return self.D
+	def get_J(self):
+		return self.J
+	def get_H(self):
+		return self.H
+	def get_s_x(self):
+		return self.s_x
+	def get_s_y(self):
+		return self.s_y
+	def get_s_z(self):
+		return self.s_z
+	def get_phi(self):
+		return self.phi
+	def get_theta(self):
+		return self.theta
+	def get_energy(self):
+		return self.energy
+	def energy_calc(self, x, i, j, k):
+		s_x = self.s_x
+		s_y = self.s_y
+		s_z = self.s_z
+		theta, phi = x[0], x[1]
+		s_x_ijk = S*np.sin(theta)*np.cos(phi)
+		s_y_ijk = S*np.sin(theta)*np.sin(phi)
+		s_z_ijk = S*np.cos(theta)
+		energy_ijk = 0
+
+		energy_ijk += -D*s_x_ijk**2
+
+		#if Type[i,j,k]== 1:
+		#    energy_ijk += DMn[0]*s_x_ijk**2 + DMn[1]*s_y_ijk**2 + DMn[2]*s_z_ijk**2
+		#else:
+		#    energy_ijk += DFe[0]*s_x_ijk**2 + DFe[1]*s_y_ijk**2 + DFe[2]*s_z_ijk**2
+		#    #energy_ijk += DFe_cubic*(s_x_ijk**2*s_y_ijk**2+s_y_ijk**2*s_z_ijk**2+s_z_ijk**2*s_x_ijk**2)
+		if i < edge_length-1:
+			energy_ijk += J*(s_x_ijk*s_x[i+1,j,k] + s_y_ijk*s_y[i+1,j,k] + s_z_ijk*s_z[i+1,j,k])
+		else:
+			energy_ijk += J*(s_x_ijk*s_x[0,j,k] + s_y_ijk*s_y[0,j,k] + s_z_ijk*s_z[0,j,k])
+		if i > 0:
+			energy_ijk += J*(s_x_ijk*s_x[i-1,j,k] + s_y_ijk*s_y[i-1,j,k] + s_z_ijk*s_z[i-1,j,k])
+		else:
+			energy_ijk += J*(s_x_ijk*s_x[edge_length-1,j,k] + s_y_ijk*s_y[edge_length-1,j,k] + s_z_ijk*s_z[edge_length-1,j,k])
+			
+		if j < edge_length-1:
+			energy_ijk += J*(s_x_ijk*s_x[i,j+1,k] + s_y_ijk*s_y[i,j+1,k] + s_z_ijk*s_z[i,j+1,k])
+		else:
+			energy_ijk += J*(s_x_ijk*s_x[i,0,k] + s_y_ijk*s_y[i,0,k] + s_z_ijk*s_z[i,0,k])
+		if j > 0:
+			energy_ijk += J*(s_x_ijk*s_x[i,j-1,k] + s_y_ijk*s_y[i,j-1,k] + s_z_ijk*s_z[i,j-1,k])
+		else:
+			energy_ijk += J*(s_x_ijk*s_x[i,edge_length-1,k] + s_y_ijk*s_y[i,edge_length-1,k] + s_z_ijk*s_z[i,edge_length-1,k])
+			
+		if k < edge_length-1:
+			energy_ijk += J*(s_x_ijk*s_x[i,j,k+1] + s_y_ijk*s_y[i,j,k+1] + s_z_ijk*s_z[i,j,k+1])
+		else:
+			energy_ijk += J*(s_x_ijk*s_x[i,j,0] + s_y_ijk*s_y[i,j,0] + s_z_ijk*s_z[i,j,0])
+		if k > 0:
+			energy_ijk += J*(s_x_ijk*s_x[i,j,k-1] + s_y_ijk*s_y[i,j,k-1] + s_z_ijk*s_z[i,j,k-1])
+		else:
+			energy_ijk += J*(s_x_ijk*s_x[i,j,edge_length-1] + s_y_ijk*s_y[i,j,edge_length-1] + s_z_ijk*s_z[i,j,edge_length-1])
+		return energy_ijk
+	
+	
+	def init_rand_arrays(self):
+		edge_length, s_x, s_y, s_z, phi, theta, energy = self.edge_length, self.s_x, self.s_y, self.s_z, self.phi, self.theta, self.energy
+		#initialize the spin momentum vectors to have a random direction
+		for i in range(0,edge_length):
+			for j in range(0,edge_length):
+				for k in range(0,edge_length):
+					phi[i,j,k] = np.random.rand()*2*np.pi
+					theta[i,j,k] = np.arccos(1.0-2.0*np.random.rand())# asdf
+					s_x[i,j,k] = S*np.sin(theta[i,j,k])*np.cos(phi[i,j,k])
+					s_y[i,j,k] = S*np.sin(theta[i,j,k])*np.sin(phi[i,j,k])
+					s_z[i,j,k] = S*np.cos(theta[i,j,k])
+					energy[i,j,k] = self.energy_calc((theta[i,j,k],phi[i,j,k]),i,j,k)
+
+		return s_x, s_y, s_z, phi, theta, energy
+
+	def total_energy_calc(self):
+		self.total_energy = np.sum(self.energy)
+		return total_energy
+
+	def __str__(self):
+		return "SpinLattice"
+		
+
+class PairCorrelation(object):
+	""" this class is defined to house the pair correlations
+	pair_corrxa, pair_corrya, pair_corrza,
+	pair_corrxb, pair_corryb, pair_corrzb,
+	pair_corrxc, pair_corryc, pair_corrzc
+	"""
+	
+	
+def pair_corr(i,j,k):
+
+    if i < edge_length-1:
+        pair_corrxa_ijk = s_x[i,j,k]*s_x[i+1,j,k]
+        pair_corrya_ijk = s_y[i,j,k]*s_y[i+1,j,k]
+        pair_corrza_ijk = s_z[i,j,k]*s_z[i+1,j,k]
     else:
-        PairCorrxa_ijk = Sx[i,j,k]*Sx[0,j,k]
-        PairCorrya_ijk = Sy[i,j,k]*Sy[0,j,k]
-        PairCorrza_ijk = Sz[i,j,k]*Sz[0,j,k]
+        pair_corrxa_ijk = s_x[i,j,k]*s_x[0,j,k]
+        pair_corrya_ijk = s_y[i,j,k]*s_y[0,j,k]
+        pair_corrza_ijk = s_z[i,j,k]*s_z[0,j,k]
         
-    if j < L-1:
-        PairCorrxb_ijk = Sx[i,j,k]*Sx[i,j+1,k]
-        PairCorryb_ijk = Sy[i,j,k]*Sy[i,j+1,k]
-        PairCorrzb_ijk = Sz[i,j,k]*Sz[i,j+1,k]
+    if j < edge_length-1:
+        pair_corrxb_ijk = s_x[i,j,k]*s_x[i,j+1,k]
+        pair_corryb_ijk = s_y[i,j,k]*s_y[i,j+1,k]
+        pair_corrzb_ijk = s_z[i,j,k]*s_z[i,j+1,k]
     else:
-        PairCorrxb_ijk = Sx[i,j,k]*Sx[i,0,k]
-        PairCorryb_ijk = Sy[i,j,k]*Sy[i,0,k]
-        PairCorrzb_ijk = Sz[i,j,k]*Sz[i,0,k]
+        pair_corrxb_ijk = s_x[i,j,k]*s_x[i,0,k]
+        pair_corryb_ijk = s_y[i,j,k]*s_y[i,0,k]
+        pair_corrzb_ijk = s_z[i,j,k]*s_z[i,0,k]
         
-    if k < L-1:
-        PairCorrxc_ijk = Sx[i,j,k]*Sx[i,j,k+1]
-        PairCorryc_ijk = Sy[i,j,k]*Sy[i,j,k+1]
-        PairCorrzc_ijk = Sz[i,j,k]*Sz[i,j,k+1]
+    if k < edge_length-1:
+        pair_corrxc_ijk = s_x[i,j,k]*s_x[i,j,k+1]
+        pair_corryc_ijk = s_y[i,j,k]*s_y[i,j,k+1]
+        pair_corrzc_ijk = s_z[i,j,k]*s_z[i,j,k+1]
     else:
-        PairCorrxc_ijk = Sx[i,j,k]*Sx[i,j,0]
-        PairCorryc_ijk = Sy[i,j,k]*Sy[i,j,0]
-        PairCorrzc_ijk = Sz[i,j,k]*Sz[i,j,0]
+        pair_corrxc_ijk = s_x[i,j,k]*s_x[i,j,0]
+        pair_corryc_ijk = s_y[i,j,k]*s_y[i,j,0]
+        pair_corrzc_ijk = s_z[i,j,k]*s_z[i,j,0]
 
-    return PairCorrxa_ijk, PairCorrya_ijk, PairCorrza_ijk, PairCorrxb_ijk, PairCorryb_ijk, PairCorrzb_ijk, PairCorrxc_ijk, PairCorryc_ijk, PairCorrzc_ijk
+    return pair_corrxa_ijk, pair_corrya_ijk, pair_corrza_ijk, pair_corrxb_ijk, pair_corryb_ijk, pair_corrzb_ijk, pair_corrxc_ijk, pair_corryc_ijk, pair_corrzc_ijk
 
-def Ecalc(x,i,j,k):
+def energy_calc(x,i,j,k):
     theta, phi = x[0], x[1]
-    Sx_ijk = S*np.sin(theta)*np.cos(phi)
-    Sy_ijk = S*np.sin(theta)*np.sin(phi)
-    Sz_ijk = S*np.cos(theta)
-    Energy_ijk = 0
+    s_x_ijk = S*np.sin(theta)*np.cos(phi)
+    s_y_ijk = S*np.sin(theta)*np.sin(phi)
+    s_z_ijk = S*np.cos(theta)
+    energy_ijk = 0
 
-    Energy_ijk += -D*Sx_ijk**2
+    energy_ijk += -D*s_x_ijk**2
 
     #if Type[i,j,k]== 1:
-    #    Energy_ijk += DMn[0]*Sx_ijk**2 + DMn[1]*Sy_ijk**2 + DMn[2]*Sz_ijk**2
+    #    energy_ijk += DMn[0]*s_x_ijk**2 + DMn[1]*s_y_ijk**2 + DMn[2]*s_z_ijk**2
     #else:
-    #    Energy_ijk += DFe[0]*Sx_ijk**2 + DFe[1]*Sy_ijk**2 + DFe[2]*Sz_ijk**2
-    #    #Energy_ijk += DFe_cubic*(Sx_ijk**2*Sy_ijk**2+Sy_ijk**2*Sz_ijk**2+Sz_ijk**2*Sx_ijk**2)
-    if i < L-1:
-        Energy_ijk += J*(Sx_ijk*Sx[i+1,j,k] + Sy_ijk*Sy[i+1,j,k] + Sz_ijk*Sz[i+1,j,k])
+    #    energy_ijk += DFe[0]*s_x_ijk**2 + DFe[1]*s_y_ijk**2 + DFe[2]*s_z_ijk**2
+    #    #energy_ijk += DFe_cubic*(s_x_ijk**2*s_y_ijk**2+s_y_ijk**2*s_z_ijk**2+s_z_ijk**2*s_x_ijk**2)
+    if i < edge_length-1:
+        energy_ijk += J*(s_x_ijk*s_x[i+1,j,k] + s_y_ijk*s_y[i+1,j,k] + s_z_ijk*s_z[i+1,j,k])
     else:
-        Energy_ijk += J*(Sx_ijk*Sx[0,j,k] + Sy_ijk*Sy[0,j,k] + Sz_ijk*Sz[0,j,k])
+        energy_ijk += J*(s_x_ijk*s_x[0,j,k] + s_y_ijk*s_y[0,j,k] + s_z_ijk*s_z[0,j,k])
     if i > 0:
-        Energy_ijk += J*(Sx_ijk*Sx[i-1,j,k] + Sy_ijk*Sy[i-1,j,k] + Sz_ijk*Sz[i-1,j,k])
+        energy_ijk += J*(s_x_ijk*s_x[i-1,j,k] + s_y_ijk*s_y[i-1,j,k] + s_z_ijk*s_z[i-1,j,k])
     else:
-        Energy_ijk += J*(Sx_ijk*Sx[L-1,j,k] + Sy_ijk*Sy[L-1,j,k] + Sz_ijk*Sz[L-1,j,k])
+        energy_ijk += J*(s_x_ijk*s_x[edge_length-1,j,k] + s_y_ijk*s_y[edge_length-1,j,k] + s_z_ijk*s_z[edge_length-1,j,k])
         
-    if j < L-1:
-        Energy_ijk += J*(Sx_ijk*Sx[i,j+1,k] + Sy_ijk*Sy[i,j+1,k] + Sz_ijk*Sz[i,j+1,k])
+    if j < edge_length-1:
+        energy_ijk += J*(s_x_ijk*s_x[i,j+1,k] + s_y_ijk*s_y[i,j+1,k] + s_z_ijk*s_z[i,j+1,k])
     else:
-        Energy_ijk += J*(Sx_ijk*Sx[i,0,k] + Sy_ijk*Sy[i,0,k] + Sz_ijk*Sz[i,0,k])
+        energy_ijk += J*(s_x_ijk*s_x[i,0,k] + s_y_ijk*s_y[i,0,k] + s_z_ijk*s_z[i,0,k])
     if j > 0:
-        Energy_ijk += J*(Sx_ijk*Sx[i,j-1,k] + Sy_ijk*Sy[i,j-1,k] + Sz_ijk*Sz[i,j-1,k])
+        energy_ijk += J*(s_x_ijk*s_x[i,j-1,k] + s_y_ijk*s_y[i,j-1,k] + s_z_ijk*s_z[i,j-1,k])
     else:
-        Energy_ijk += J*(Sx_ijk*Sx[i,L-1,k] + Sy_ijk*Sy[i,L-1,k] + Sz_ijk*Sz[i,L-1,k])
+        energy_ijk += J*(s_x_ijk*s_x[i,edge_length-1,k] + s_y_ijk*s_y[i,edge_length-1,k] + s_z_ijk*s_z[i,edge_length-1,k])
         
-    if k < L-1:
-        Energy_ijk += J*(Sx_ijk*Sx[i,j,k+1] + Sy_ijk*Sy[i,j,k+1] + Sz_ijk*Sz[i,j,k+1])
+    if k < edge_length-1:
+        energy_ijk += J*(s_x_ijk*s_x[i,j,k+1] + s_y_ijk*s_y[i,j,k+1] + s_z_ijk*s_z[i,j,k+1])
     else:
-        Energy_ijk += J*(Sx_ijk*Sx[i,j,0] + Sy_ijk*Sy[i,j,0] + Sz_ijk*Sz[i,j,0])
+        energy_ijk += J*(s_x_ijk*s_x[i,j,0] + s_y_ijk*s_y[i,j,0] + s_z_ijk*s_z[i,j,0])
     if k > 0:
-        Energy_ijk += J*(Sx_ijk*Sx[i,j,k-1] + Sy_ijk*Sy[i,j,k-1] + Sz_ijk*Sz[i,j,k-1])
+        energy_ijk += J*(s_x_ijk*s_x[i,j,k-1] + s_y_ijk*s_y[i,j,k-1] + s_z_ijk*s_z[i,j,k-1])
     else:
-        Energy_ijk += J*(Sx_ijk*Sx[i,j,L-1] + Sy_ijk*Sy[i,j,L-1] + Sz_ijk*Sz[i,j,L-1])
-    return Energy_ijk
+        energy_ijk += J*(s_x_ijk*s_x[i,j,edge_length-1] + s_y_ijk*s_y[i,j,edge_length-1] + s_z_ijk*s_z[i,j,edge_length-1])
+    return energy_ijk
 
-def Ecalc_theta_only(x,phi,i,j,k):
-    this_e = Ecalc((x,phi),i,j,k)
+def energy_calc_theta_only(x,phi,i,j,k):
+    this_e = energy_calc((x,phi),i,j,k)
     return this_e
 
-def localField(x,i,j,k):
+def local_field(x,i,j,k):
     theta, phi = x[0], x[1]
-    Sx_ijk = S*np.sin(theta)*np.cos(phi)
-    Sy_ijk = S*np.sin(theta)*np.sin(phi)
-    Sz_ijk = S*np.cos(theta)
-    localField_ijk = np.array([0,0,0])
+    s_x_ijk = S*np.sin(theta)*np.cos(phi)
+    s_y_ijk = S*np.sin(theta)*np.sin(phi)
+    s_z_ijk = S*np.cos(theta)
+    local_field_ijk = np.array([0,0,0])
     
-    if i < L-1:
-        localField_ijk = localField_ijk + J*np.array([Sx[i+1,j,k] , Sy[i+1,j,k] , Sz[i+1,j,k]])
+    if i < edge_length-1:
+        local_field_ijk = local_field_ijk + J*np.array([s_x[i+1,j,k] , s_y[i+1,j,k] , s_z[i+1,j,k]])
     else:
-        localField_ijk = localField_ijk + J*np.array([Sx[0,j,k] , Sy[0,j,k] , Sz[0,j,k]])
+        local_field_ijk = local_field_ijk + J*np.array([s_x[0,j,k] , s_y[0,j,k] , s_z[0,j,k]])
     if i > 0:
-        localField_ijk = localField_ijk + J*np.array([Sx[i-1,j,k] , Sy[i-1,j,k] , Sz[i-1,j,k]])
+        local_field_ijk = local_field_ijk + J*np.array([s_x[i-1,j,k] , s_y[i-1,j,k] , s_z[i-1,j,k]])
     else:
-        localField_ijk = localField_ijk + J*np.array([Sx[L-1,j,k] , Sy[L-1,j,k] , Sz[L-1,j,k]])
+        local_field_ijk = local_field_ijk + J*np.array([s_x[edge_length-1,j,k] , s_y[edge_length-1,j,k] , s_z[edge_length-1,j,k]])
         
-    if j < L-1:
-        localField_ijk = localField_ijk + J*np.array([Sx[i,j+1,k] , Sy[i,j+1,k] , Sz[i,j+1,k]])
+    if j < edge_length-1:
+        local_field_ijk = local_field_ijk + J*np.array([s_x[i,j+1,k] , s_y[i,j+1,k] , s_z[i,j+1,k]])
     else:
-        localField_ijk = localField_ijk + J*np.array([Sx[i,0,k] , Sy[i,0,k] , Sz[i,0,k]])
+        local_field_ijk = local_field_ijk + J*np.array([s_x[i,0,k] , s_y[i,0,k] , s_z[i,0,k]])
     if j > 0:
-        localField_ijk = localField_ijk + J*np.array([Sx[i,j-1,k] , Sy[i,j-1,k] , Sz[i,j-1,k]])
+        local_field_ijk = local_field_ijk + J*np.array([s_x[i,j-1,k] , s_y[i,j-1,k] , s_z[i,j-1,k]])
     else:
-        localField_ijk = localField_ijk + J*np.array([Sx[i,L-1,k] , Sy[i,L-1,k] , Sz[i,L-1,k]])
+        local_field_ijk = local_field_ijk + J*np.array([s_x[i,edge_length-1,k] , s_y[i,edge_length-1,k] , s_z[i,edge_length-1,k]])
         
-    if k < L-1:
-        localField_ijk = localField_ijk + J*np.array([Sx[i,j,k+1] , Sy[i,j,k+1] , Sz[i,j,k+1]])
+    if k < edge_length-1:
+        local_field_ijk = local_field_ijk + J*np.array([s_x[i,j,k+1] , s_y[i,j,k+1] , s_z[i,j,k+1]])
     else:
-        localField_ijk = localField_ijk + J*np.array([Sx[i,j,0] , Sy[i,j,0] , Sz[i,j,0]])
+        local_field_ijk = local_field_ijk + J*np.array([s_x[i,j,0] , s_y[i,j,0] , s_z[i,j,0]])
     if k > 0:
-        localField_ijk = localField_ijk + J*np.array([Sx[i,j,k-1] , Sy[i,j,k-1] , Sz[i,j,k-1]])
+        local_field_ijk = local_field_ijk + J*np.array([s_x[i,j,k-1] , s_y[i,j,k-1] , s_z[i,j,k-1]])
     else:
-        localField_ijk = localField_ijk + J*np.array([Sx[i,j,L-1] , Sy[i,j,L-1] , Sz[i,j,L-1]])
-    return localField_ijk
+        local_field_ijk = local_field_ijk + J*np.array([s_x[i,j,edge_length-1] , s_y[i,j,edge_length-1] , s_z[i,j,edge_length-1]])
+    return local_field_ijk
 
-def NonMinEcalc(x, NonMinE, i, j, k):
-    return (Ecalc(x,i,j,k)-NonMinE)**2
+def non_min_energy_calc(x, non_min_e, i, j, k):
+    return (energy_calc(x,i,j,k)-non_min_e)**2
 
-#debye model for phonons
-#changed away from the phonon picture, now it is Boltzmann statistics
 def phonon_probability(E,T):
     return phonon_prefactor(E,T)*unscaled_phonon_probability(E,T)
 
@@ -165,37 +284,6 @@ def phonon_cdf(E,T):
     return quad(phonon_probability, 0, E, args=(T))
 
 
-
-#initialize the arrays
-Sx = np.zeros((L,L,L))
-Sy = np.zeros((L,L,L))
-Sz = np.zeros((L,L,L))
-
-Phi = np.zeros((L,L,L))
-Theta = np.zeros((L,L,L))
-
-Energy = np.zeros((L,L,L))
-
-PairCorrxa = np.zeros((L,L,L))
-PairCorrya = np.zeros((L,L,L))
-PairCorrza = np.zeros((L,L,L))
-PairCorrxb = np.zeros((L,L,L))
-PairCorryb = np.zeros((L,L,L))
-PairCorrzb = np.zeros((L,L,L))
-PairCorrxc = np.zeros((L,L,L))
-PairCorryc = np.zeros((L,L,L))
-PairCorrzc = np.zeros((L,L,L))
-
-#initialize the spin momentum vectors to have a random direction
-for i in range(0,L):
-    for j in range(0,L):
-        for k in range(0,L):
-            Phi[i,j,k] = np.random.rand()*2*np.pi
-            Theta[i,j,k] = np.arccos(1.0-2.0*np.random.rand())# asdf
-            Sx[i,j,k] = S*np.sin(Theta[i,j,k])*np.cos(Phi[i,j,k])
-            Sy[i,j,k] = S*np.sin(Theta[i,j,k])*np.sin(Phi[i,j,k])
-            Sz[i,j,k] = S*np.cos(Theta[i,j,k])
-            Energy[i,j,k] = Ecalc((Theta[i,j,k],Phi[i,j,k]),i,j,k)
 
 def createInvCDF(t):
     
@@ -256,6 +344,21 @@ def createInvCDF(t):
         plt.hist(random_energy_list, bins = 50)
     return inv_cdf
 
+	
+	
+print(time()-start_time)
+	
+my_lattice = SpinLattice(edge_length, S, D, J, H)
+my_lattice.init_rand_arrays()
+print(time()-start_time)
+print('start debugging')
+
+print('end debugging')
+
+print(time()-start_time)
+
+exit()
+	
 t_list = np.linspace(10,2,20)
 Emin_list = []
 
@@ -274,83 +377,83 @@ pczc_list = []
 for t in t_list:
     inv_cdf = createInvCDF(t)
 
-    Energy_list = []
-    Energy_list.append(np.sum(Energy))
+    energy_list = []
+    energy_list.append(np.sum(energy))
     #now do the energy minimization procedure
     for shmoo in range(0,10):
-        for i in range(0,L):
-            for j in range(0,L):
-                for k in range(0,L):
+        for i in range(0,edge_length):
+            for j in range(0,edge_length):
+                for k in range(0,edge_length):
                     phonon_energy = inv_cdf(np.random.rand())
-                    #print(localField((Theta[i,j,k],Phi[i,j,k]),i,j,k))
-                    newtheta, newphi = spop.optimize.fmin(Ecalc, maxfun=5000, maxiter=5000, ftol=1e-6, xtol=1e-5, x0=(Theta[i,j,k],Phi[i,j,k]), args = (i,j,k), disp=0)
+                    #print(local_field((theta[i,j,k],phi[i,j,k]),i,j,k))
+                    newtheta, newphi = spop.optimize.fmin(energy_calc, maxfun=5000, maxiter=5000, ftol=1e-6, xtol=1e-5, x0=(theta[i,j,k],phi[i,j,k]), args = (i,j,k), disp=0)
                     
                     
-                    print(t, i,j,k,newtheta, newphi, Ecalc((newtheta, newphi),i,j,k), phonon_energy)
-                    Phi[i,j,k] = newphi
-                    Theta[i,j,k] = newtheta
-                    Sx[i,j,k] = S*np.sin(Theta[i,j,k])*np.cos(Phi[i,j,k])
-                    Sy[i,j,k] = S*np.sin(Theta[i,j,k])*np.sin(Phi[i,j,k])
-                    Sz[i,j,k] = S*np.cos(Theta[i,j,k])
-                    Energy[i,j,k] = Ecalc((Theta[i,j,k],Phi[i,j,k]),i,j,k)
+                    print(t, i,j,k,newtheta, newphi, energy_calc((newtheta, newphi),i,j,k), phonon_energy)
+                    phi[i,j,k] = newphi
+                    theta[i,j,k] = newtheta
+                    s_x[i,j,k] = S*np.sin(theta[i,j,k])*np.cos(phi[i,j,k])
+                    s_y[i,j,k] = S*np.sin(theta[i,j,k])*np.sin(phi[i,j,k])
+                    s_z[i,j,k] = S*np.cos(theta[i,j,k])
+                    energy[i,j,k] = energy_calc((theta[i,j,k],phi[i,j,k]),i,j,k)
 
 
-                    NonMinE = Energy[i,j,k]+phonon_energy
-                    if NonMinE > 6*2*J*S*S:
-                        NonMinE = 6*2*J*S*S
-                    newtheta, newphi = spop.optimize.fmin(NonMinEcalc, maxfun=5000, maxiter=5000, ftol=1e-6, xtol=1e-5, x0=(np.arccos(1.0-2.0*np.random.rand()),np.random.rand()*np.pi), args = (NonMinE,i,j,k), disp=0)
-                    Phi[i,j,k] = newphi
-                    Theta[i,j,k] = newtheta
-                    Sx[i,j,k] = S*np.sin(Theta[i,j,k])*np.cos(Phi[i,j,k])
-                    Sy[i,j,k] = S*np.sin(Theta[i,j,k])*np.sin(Phi[i,j,k])
-                    Sz[i,j,k] = S*np.cos(Theta[i,j,k])
-                    Energy[i,j,k] = Ecalc((Theta[i,j,k],Phi[i,j,k]),i,j,k)                
-                    #newtheta, newphi = spop.optimize.fmin(NonMinEcalc, maxfun=5000, maxiter=5000, ftol=1e-6, xtol=1e-5, x0=(Theta[i,j,k],Phi[i,j,k]), args = (phonon_energy,i,j,k), disp=0)
+                    non_min_e = energy[i,j,k]+phonon_energy
+                    if non_min_e > 6*2*J*S*S:
+                        non_min_e = 6*2*J*S*S
+                    newtheta, newphi = spop.optimize.fmin(non_min_energy_calc, maxfun=5000, maxiter=5000, ftol=1e-6, xtol=1e-5, x0=(np.arccos(1.0-2.0*np.random.rand()),np.random.rand()*np.pi), args = (non_min_e,i,j,k), disp=0)
+                    phi[i,j,k] = newphi
+                    theta[i,j,k] = newtheta
+                    s_x[i,j,k] = S*np.sin(theta[i,j,k])*np.cos(phi[i,j,k])
+                    s_y[i,j,k] = S*np.sin(theta[i,j,k])*np.sin(phi[i,j,k])
+                    s_z[i,j,k] = S*np.cos(theta[i,j,k])
+                    energy[i,j,k] = energy_calc((theta[i,j,k],phi[i,j,k]),i,j,k)                
+                    #newtheta, newphi = spop.optimize.fmin(non_min_energy_calc, maxfun=5000, maxiter=5000, ftol=1e-6, xtol=1e-5, x0=(theta[i,j,k],phi[i,j,k]), args = (phonon_energy,i,j,k), disp=0)
                     
-        Energy_list.append(np.sum(Energy))
+        energy_list.append(np.sum(energy))
 
-    Emin_list.append(np.min(Energy_list))
-    #print(Energy_list)
-    #print(-L**3*2*J*S*S*3, -L**3*2*J*S*S*3-L**3*2*D*S*S)
+    Emin_list.append(np.min(energy_list))
+    #print(energy_list)
+    #print(-edge_length**3*2*J*S*S*3, -edge_length**3*2*J*S*S*3-edge_length**3*2*D*S*S)
     #print(phonon_energy)
     if 0: #should each 3d map of the spins be drawn?
         fig = plt.figure()
         ax = fig.add_subplot(111, projection='3d')
 
         #plot solution
-        for i in range(0,L):
-            for j in range(0,L):
-                for k in range(0,L):
+        for i in range(0,edge_length):
+            for j in range(0,edge_length):
+                for k in range(0,edge_length):
                     ax.scatter(i, j, k, color = 'black', marker='o')
-                    ax.plot([i,i+Sx[i,j,k]*moment_visualization_scale_factor], [j,j+Sy[i,j,k]*moment_visualization_scale_factor], [k,k+Sz[i,j,k]*moment_visualization_scale_factor], color = 'black')
+                    ax.plot([i,i+s_x[i,j,k]*moment_visualization_scale_factor], [j,j+s_y[i,j,k]*moment_visualization_scale_factor], [k,k+s_z[i,j,k]*moment_visualization_scale_factor], color = 'black')
 
     #calculate the pair correlations
-    for i in range(0,L):
-        for j in range(0,L):
-            for k in range(0,L):
-                PairCorrxa[i,j,k], PairCorrya[i,j,k], PairCorrza[i,j,k], PairCorrxb[i,j,k], PairCorryb[i,j,k], PairCorrzb[i,j,k], PairCorrxc[i,j,k], PairCorryc[i,j,k], PairCorrzc[i,j,k] = PairCorr(i,j,k)
+    for i in range(0,edge_length):
+        for j in range(0,edge_length):
+            for k in range(0,edge_length):
+                pair_corrxa[i,j,k], pair_corrya[i,j,k], pair_corrza[i,j,k], pair_corrxb[i,j,k], pair_corryb[i,j,k], pair_corrzb[i,j,k], pair_corrxc[i,j,k], pair_corryc[i,j,k], pair_corrzc[i,j,k] = pair_corr(i,j,k)
 
 
-    print("np.sum(PairCorrxa), np.sum(PairCorrya), np.sum(PairCorrza)")
-    print(np.sum(PairCorrxa), np.sum(PairCorrya), np.sum(PairCorrza))
+    print("np.sum(pair_corrxa), np.sum(pair_corrya), np.sum(pair_corrza)")
+    print(np.sum(pair_corrxa), np.sum(pair_corrya), np.sum(pair_corrza))
 
-    print("np.sum(PairCorrxb), np.sum(PairCorryb), np.sum(PairCorrzb)")
-    print(np.sum(PairCorrxb), np.sum(PairCorryb), np.sum(PairCorrzb))
+    print("np.sum(pair_corrxb), np.sum(pair_corryb), np.sum(pair_corrzb)")
+    print(np.sum(pair_corrxb), np.sum(pair_corryb), np.sum(pair_corrzb))
 
-    print("np.sum(PairCorrxc), np.sum(PairCorryc), np.sum(PairCorrzc)")
-    print(np.sum(PairCorrxc), np.sum(PairCorryc), np.sum(PairCorrzc))
+    print("np.sum(pair_corrxc), np.sum(pair_corryc), np.sum(pair_corrzc)")
+    print(np.sum(pair_corrxc), np.sum(pair_corryc), np.sum(pair_corrzc))
 
-    pcxa_list.append(np.sum(PairCorrxa))
-    pcya_list.append(np.sum(PairCorrya))
-    pcza_list.append(np.sum(PairCorrza))
+    pcxa_list.append(np.sum(pair_corrxa))
+    pcya_list.append(np.sum(pair_corrya))
+    pcza_list.append(np.sum(pair_corrza))
 
-    pcxb_list.append(np.sum(PairCorrxb))
-    pcyb_list.append(np.sum(PairCorryb))
-    pczb_list.append(np.sum(PairCorrzb))
+    pcxb_list.append(np.sum(pair_corrxb))
+    pcyb_list.append(np.sum(pair_corryb))
+    pczb_list.append(np.sum(pair_corrzb))
 
-    pcxc_list.append(np.sum(PairCorrxc))
-    pcyc_list.append(np.sum(PairCorryc))
-    pczc_list.append(np.sum(PairCorrzc))
+    pcxc_list.append(np.sum(pair_corrxc))
+    pcyc_list.append(np.sum(pair_corryc))
+    pczc_list.append(np.sum(pair_corrzc))
 
 end_time = time()
 
