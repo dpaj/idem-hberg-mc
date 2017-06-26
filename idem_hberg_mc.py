@@ -170,8 +170,8 @@ class SpinLattice(object):
 					print('my_energy_range', my_energy_range)
 					
 					zeroed_e_array = temp_e_array - my_energy_min
-					plt.plot(zeroed_e_array,'o')
-					plt.show()
+					#plt.plot(zeroed_e_array,'o')
+					#plt.show()
 					partition_function = np.exp(-(zeroed_e_array/temperature))
 					print(np.sum(partition_function))
 					#print(energy_min, np.min(temp_e_array))
