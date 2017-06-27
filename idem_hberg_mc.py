@@ -1,3 +1,4 @@
+from __future__ import print_function
 from time import time
 #for timing of simulation
 start_time = time()
@@ -9,6 +10,7 @@ import scipy.optimize as spop
 from scipy.integrate import quad
 from scipy.interpolate import interp1d
 import random
+
 
 hbar = 6.626070040e-34 #SI units
 
@@ -72,6 +74,17 @@ class SpinLattice(object):
 		return self.theta
 	def get_energy(self):
 		return self.energy
+	def temp_energy_calc(self, x, i, j, k, energy_min, theta_min, phi_min, s_x_min, s_y_min, s_z_min, temperature):
+		theta, phi = x[0], x[1]
+		#print(theta)
+		s_x = self.s_x
+		s_y = self.s_y
+		s_z = self.s_z
+		s_max = self.s_max
+		
+		angle_between_vectors = np.arccos(  (  (s_x[i,j,k]*s_x_min) + (s_y[i,j,k]*s_y_min) + (s_z[i,j,k]*s_z_min)  ) / s_max**2  )
+		#print(angle_between_vectors)
+		return (angle_between_vectors-temperature/10.0*np.pi*0.5)**2 + (self.energy_calc(x,i,j,k)-energy_min-temperature)**2
 	def energy_calc(self, x, i, j, k):
 		s_x = self.s_x
 		s_y = self.s_y
@@ -144,19 +157,35 @@ class SpinLattice(object):
 		s_z = self.s_z
 		random_ijk_list = self.random_ijk_list
 		possible_angles_list = self.possible_angles_list
+		temp_energy_calc = self.temp_energy_calc
 		
 		print("sweeping temperature...")
 		for temperature in np.linspace(temperature_max, temperature_min, temperature_steps):
-			print("temperature=",temperature)
+			print("\ntemperature=",temperature)
 			for equilibration_index in np.linspace(0,equilibration_steps-1,equilibration_steps):
-				print("  equilibration index=", equilibration_index)
+				print("  equilibration index=", equilibration_index, end=':')
 				for ijk in random_ijk_list:
 					i,j,k = ijk[0], ijk[1], ijk[2]
-					old_energy = energy[i,j,k]
-					theta_min, phi_min = spop.optimize.fmin(energy_calc, maxfun=5000, maxiter=5000, ftol=1e-6, xtol=1e-5, x0=(theta[i,j,k],phi[i,j,k]), args = (i,j,k), disp=0)
-					energy_min = energy_calc((theta_min, phi_min),i,j,k)
-
+					old_energy = energy[i,j,k]*1.0
+					old_phi = phi[i,j,k]*1.0
+					old_theta = theta[i,j,k]*1.0
+					old_s_x = s_x[i,j,k]*1.0
+					old_s_y = s_y[i,j,k]*1.0
+					old_s_z = s_z[i,j,k]*1.0
 					
+					theta_min, phi_min = spop.optimize.fmin(energy_calc, \
+					maxfun=5000, maxiter=5000, ftol=1e-6, xtol=1e-5, x0=(theta[i,j,k],phi[i,j,k]), args = (i,j,k), disp=0)
+					
+					s_x_min = s_max*np.sin(theta_min)*np.cos(phi_min)
+					s_y_min = s_max*np.sin(theta_min)*np.sin(phi_min)
+					s_z_min = s_max*np.cos(theta_min)
+					energy_min = energy_calc((theta_min, phi_min),i,j,k)
+					
+					theta_min, phi_min = spop.optimize.fmin(temp_energy_calc, \
+					maxfun=5000, maxiter=5000, ftol=1e-6, xtol=1e-5, x0=(theta[i,j,k],phi[i,j,k]), \
+					args = (i,j,k, energy_min, theta_min, phi_min, s_x_min, s_y_min, s_z_min, temperature), disp=0)
+
+					"""
 					temp_e_array = np.zeros(len(possible_angles_list))
 					for index, angle_state in enumerate(possible_angles_list):
 						temp_e_array[index] = energy_calc((angle_state[0], angle_state[1]),i,j,k)
@@ -175,14 +204,18 @@ class SpinLattice(object):
 					partition_function = np.exp(-(zeroed_e_array/temperature))
 					print(np.sum(partition_function))
 					#print(energy_min, np.min(temp_e_array))
+					
 					"""
+					
+					
 					phi[i,j,k] = phi_min
 					theta[i,j,k] = theta_min
 					s_x[i,j,k] = s_max*np.sin(theta[i,j,k])*np.cos(phi[i,j,k])
 					s_y[i,j,k] = s_max*np.sin(theta[i,j,k])*np.sin(phi[i,j,k])
 					s_z[i,j,k] = s_max*np.cos(theta[i,j,k])
 					energy[i,j,k] = energy_calc((theta[i,j,k],phi[i,j,k]),i,j,k)
-					"""
+					
+				print(np.sum(energy), end=', ')
 					
 	def random_ijk_list_generator(self):
 		random_ijk_list = self.random_ijk_list
@@ -388,9 +421,9 @@ print('end debugging')
 my_lattice.random_ijk_list_generator()
 my_lattice.possible_angles_list_generator(1000)
 #print(my_lattice.possible_angles_list)
-my_lattice.temperature_sweep(temperature_max=10.0, temperature_min=1.0, temperature_steps=1.0, equilibration_steps=1, number_of_angle_states=100)
+my_lattice.temperature_sweep(temperature_max=10.0, temperature_min=1.0, temperature_steps=2.0, equilibration_steps=20, number_of_angle_states=100)
 
-print('time=', time()-start_time)
+print('\ntime=', time()-start_time)
 exit()
 
 
