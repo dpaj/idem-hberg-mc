@@ -19,7 +19,7 @@ moment_visualization_scale_factor = 0.1
 
 edge_length = 4 #length of 3-dimensional lattice, such that N = edge_length^3
 s_max = 2 #spin number
-single_ion_anisotropy = 1 #anisotropy value, in Kelvin units
+single_ion_anisotropy = 0 #anisotropy value, in Kelvin units
 superexchange = 1 #nearest neighbor isotropic superexchange parameter, in Kelvin units
 magnetic_field = np.array([0,0,0]) #magnetic field, in Kelvin units
 t_debye = 6*2*superexchange*s_max*s_max
@@ -85,7 +85,17 @@ class SpinLattice(object):
 		angle_between_vectors = np.arccos(  (  (s_x[i,j,k]*s_x_min) + (s_y[i,j,k]*s_y_min) + (s_z[i,j,k]*s_z_min)  ) / s_max**2  )
 		#print(angle_between_vectors)
 		return (angle_between_vectors-temperature/10.0*np.pi*0.5)**2 + (self.energy_calc(x,i,j,k)-energy_min-temperature)**2
-	def energy_calc(self, x, i, j, k):
+	def energy_calc(self, x, super_exchange_field):
+		theta, phi = x[0], x[1]
+		s_x_ijk = s_max*np.sin(theta)*np.cos(phi)
+		s_y_ijk = s_max*np.sin(theta)*np.sin(phi)
+		s_z_ijk = s_max*np.cos(theta)
+		s_vec_ijk = np.array([s_x_ijk, s_y_ijk, s_z_ijk])
+		
+		energy_ijk = np.dot(super_exchange_field, s_vec_ijk)
+		
+		return energy_ijk
+	def energy_calc_simple(self, x, i, j, k):
 		s_x = self.s_x
 		s_y = self.s_y
 		s_z = self.s_z
@@ -140,7 +150,7 @@ class SpinLattice(object):
 					s_x[i,j,k] = s_max*np.sin(theta[i,j,k])*np.cos(phi[i,j,k])
 					s_y[i,j,k] = s_max*np.sin(theta[i,j,k])*np.sin(phi[i,j,k])
 					s_z[i,j,k] = s_max*np.cos(theta[i,j,k])
-					energy[i,j,k] = self.energy_calc((theta[i,j,k],phi[i,j,k]),i,j,k)
+					energy[i,j,k] = self.energy_calc_simple((theta[i,j,k],phi[i,j,k]),i,j,k)
 
 		return s_x, s_y, s_z, phi, theta, energy
 	def total_energy_calc(self):
@@ -151,6 +161,8 @@ class SpinLattice(object):
 		phi = self.phi
 		energy = self.energy
 		energy_calc = self.energy_calc
+		energy_calc_simple = self.energy_calc_simple
+		super_exchange_field_calc = self.super_exchange_field_calc
 		edge_length = self.edge_length
 		s_x = self.s_x
 		s_y = self.s_y
@@ -173,13 +185,36 @@ class SpinLattice(object):
 					old_s_y = s_y[i,j,k]*1.0
 					old_s_z = s_z[i,j,k]*1.0
 					
-					theta_min, phi_min = spop.optimize.fmin(energy_calc, \
+					print('\nstart trying to do a more efficient calculation here\n')
+
+					super_exchange_field = super_exchange_field_calc(i,j,k)
+					#single_ion_anisotropy
+					
+					print(super_exchange_field)
+					
+					
+					theta_min, phi_min = spop.optimize.fmin(energy_calc_simple, \
 					maxfun=5000, maxiter=5000, ftol=1e-6, xtol=1e-5, x0=(theta[i,j,k],phi[i,j,k]), args = (i,j,k), disp=0)
 					
+					theta_min2, phi_min2 = spop.optimize.fmin(energy_calc, \
+					maxfun=5000, maxiter=5000, ftol=1e-6, xtol=1e-5, x0=(theta[i,j,k], phi[i,j,k]), args = (super_exchange_field,), disp=0)
+					
+					super_exchange_field_rot = np.dot(my_rot_mat(theta_min2, phi_min2), super_exchange_field)
+					
+					theta_min_rot, phi_min_rot = spop.optimize.fmin(energy_calc, \
+					maxfun=5000, maxiter=5000, ftol=1e-6, xtol=1e-5, x0=(theta[i,j,k], phi[i,j,k]), args = (super_exchange_field_rot,), disp=0)
+					
+					print('***comparison of methods',theta_min, theta_min2, phi_min, phi_min2)
+					print('***comparison of methods', theta_min_rot,phi_min_rot)
+					energy_min2 = energy_calc((theta_min2, phi_min2),super_exchange_field,)
+					
+					energy_min_rot = energy_calc((theta_min_rot, phi_min_rot),super_exchange_field_rot,)
+										
 					s_x_min = s_max*np.sin(theta_min)*np.cos(phi_min)
 					s_y_min = s_max*np.sin(theta_min)*np.sin(phi_min)
 					s_z_min = s_max*np.cos(theta_min)
-					energy_min = energy_calc((theta_min, phi_min),i,j,k)
+					energy_min = energy_calc_simple((theta_min, phi_min),i,j,k)
+					print('***comparison of methods',energy_min, energy_min2, energy_min_rot)
 					
 					theta_min, phi_min = spop.optimize.fmin(temp_energy_calc, \
 					maxfun=5000, maxiter=5000, ftol=1e-6, xtol=1e-5, x0=(theta[i,j,k],phi[i,j,k]), \
@@ -239,6 +274,41 @@ class SpinLattice(object):
 			else:
 				phi[k] = (phi[k-1] + 3.6/np.sqrt(N*(1.0-h**2))) % (2.0*np.pi)
 			possible_angles_list.append(np.array([theta[k], phi[k]]))
+
+	def super_exchange_field_calc(self,i,j,k):
+		#theta, phi = self.theta[i,j,k], self.phi[i,j,k]
+		s_x = self.s_x
+		s_y = self.s_y
+		s_z = self.s_z
+		super_exchange_field_ijk = np.array([0,0,0])
+		
+		if i < edge_length-1:
+			super_exchange_field_ijk = super_exchange_field_ijk + superexchange*np.array([s_x[i+1,j,k] , s_y[i+1,j,k] , s_z[i+1,j,k]])
+		else:
+			super_exchange_field_ijk = super_exchange_field_ijk + superexchange*np.array([s_x[0,j,k] , s_y[0,j,k] , s_z[0,j,k]])
+		if i > 0:
+			super_exchange_field_ijk = super_exchange_field_ijk + superexchange*np.array([s_x[i-1,j,k] , s_y[i-1,j,k] , s_z[i-1,j,k]])
+		else:
+			super_exchange_field_ijk = super_exchange_field_ijk + superexchange*np.array([s_x[edge_length-1,j,k] , s_y[edge_length-1,j,k] , s_z[edge_length-1,j,k]])
+			
+		if j < edge_length-1:
+			super_exchange_field_ijk = super_exchange_field_ijk + superexchange*np.array([s_x[i,j+1,k] , s_y[i,j+1,k] , s_z[i,j+1,k]])
+		else:
+			super_exchange_field_ijk = super_exchange_field_ijk + superexchange*np.array([s_x[i,0,k] , s_y[i,0,k] , s_z[i,0,k]])
+		if j > 0:
+			super_exchange_field_ijk = super_exchange_field_ijk + superexchange*np.array([s_x[i,j-1,k] , s_y[i,j-1,k] , s_z[i,j-1,k]])
+		else:
+			super_exchange_field_ijk = super_exchange_field_ijk + superexchange*np.array([s_x[i,edge_length-1,k] , s_y[i,edge_length-1,k] , s_z[i,edge_length-1,k]])
+			
+		if k < edge_length-1:
+			super_exchange_field_ijk = super_exchange_field_ijk + superexchange*np.array([s_x[i,j,k+1] , s_y[i,j,k+1] , s_z[i,j,k+1]])
+		else:
+			super_exchange_field_ijk = super_exchange_field_ijk + superexchange*np.array([s_x[i,j,0] , s_y[i,j,0] , s_z[i,j,0]])
+		if k > 0:
+			super_exchange_field_ijk = super_exchange_field_ijk + superexchange*np.array([s_x[i,j,k-1] , s_y[i,j,k-1] , s_z[i,j,k-1]])
+		else:
+			super_exchange_field_ijk = super_exchange_field_ijk + superexchange*np.array([s_x[i,j,edge_length-1] , s_y[i,j,edge_length-1] , s_z[i,j,edge_length-1]])
+		return super_exchange_field_ijk
 			
 			
 
@@ -250,6 +320,31 @@ class PairCorrelation(object):
 	pair_corrxc, pair_corryc, pair_corrzc
 	"""
 	
+def my_rot_mat(theta,phi):
+	"""
+	this rotation matrix will rotate a coordinate system such that the point at (theta,phi) goes to [0,0,1]
+	"""
+	c = np.cos
+	s = np.sin
+	t = theta
+	p = phi
+	
+	R11 = s(p)**2 + c(p)**2 * c(t)#c(t) + s(p)**2*(1+c(t))
+	R12 = -s(p)*c(p)*(1-c(t))
+	R13 = -c(p)*s(t)
+	
+	R21 = -s(p)*c(p)*(1-c(t))#c(p)*s(p)*(1-c(t))
+	R22 = c(p)**2 + s(p)**2 * c(t) #c(t) + c(p)**2*(1+c(t))
+	R23 = -s(p)*s(t)
+	
+	R31 = c(p)*s(t)
+	R32 = s(p)*s(t)
+	R33 = c(t)
+	
+	R = np.array([[R11, R12, R13],[R21, R22, R23],[R31, R32, R33]])
+	
+	return R
+
 	
 def pair_corr(i,j,k):
 
@@ -282,40 +377,7 @@ def pair_corr(i,j,k):
 
     return pair_corrxa_ijk, pair_corrya_ijk, pair_corrza_ijk, pair_corrxb_ijk, pair_corryb_ijk, pair_corrzb_ijk, pair_corrxc_ijk, pair_corryc_ijk, pair_corrzc_ijk
 
-def local_field(x,i,j,k):
-    theta, phi = x[0], x[1]
-    s_x_ijk = s_max*np.sin(theta)*np.cos(phi)
-    s_y_ijk = s_max*np.sin(theta)*np.sin(phi)
-    s_z_ijk = s_max*np.cos(theta)
-    local_field_ijk = np.array([0,0,0])
-    
-    if i < edge_length-1:
-        local_field_ijk = local_field_ijk + superexchange*np.array([s_x[i+1,j,k] , s_y[i+1,j,k] , s_z[i+1,j,k]])
-    else:
-        local_field_ijk = local_field_ijk + superexchange*np.array([s_x[0,j,k] , s_y[0,j,k] , s_z[0,j,k]])
-    if i > 0:
-        local_field_ijk = local_field_ijk + superexchange*np.array([s_x[i-1,j,k] , s_y[i-1,j,k] , s_z[i-1,j,k]])
-    else:
-        local_field_ijk = local_field_ijk + superexchange*np.array([s_x[edge_length-1,j,k] , s_y[edge_length-1,j,k] , s_z[edge_length-1,j,k]])
-        
-    if j < edge_length-1:
-        local_field_ijk = local_field_ijk + superexchange*np.array([s_x[i,j+1,k] , s_y[i,j+1,k] , s_z[i,j+1,k]])
-    else:
-        local_field_ijk = local_field_ijk + superexchange*np.array([s_x[i,0,k] , s_y[i,0,k] , s_z[i,0,k]])
-    if j > 0:
-        local_field_ijk = local_field_ijk + superexchange*np.array([s_x[i,j-1,k] , s_y[i,j-1,k] , s_z[i,j-1,k]])
-    else:
-        local_field_ijk = local_field_ijk + superexchange*np.array([s_x[i,edge_length-1,k] , s_y[i,edge_length-1,k] , s_z[i,edge_length-1,k]])
-        
-    if k < edge_length-1:
-        local_field_ijk = local_field_ijk + superexchange*np.array([s_x[i,j,k+1] , s_y[i,j,k+1] , s_z[i,j,k+1]])
-    else:
-        local_field_ijk = local_field_ijk + superexchange*np.array([s_x[i,j,0] , s_y[i,j,0] , s_z[i,j,0]])
-    if k > 0:
-        local_field_ijk = local_field_ijk + superexchange*np.array([s_x[i,j,k-1] , s_y[i,j,k-1] , s_z[i,j,k-1]])
-    else:
-        local_field_ijk = local_field_ijk + superexchange*np.array([s_x[i,j,edge_length-1] , s_y[i,j,edge_length-1] , s_z[i,j,edge_length-1]])
-    return local_field_ijk
+
 
 def non_min_energy_calc(x, non_min_e, i, j, k):
     return (energy_calc(x,i,j,k)-non_min_e)**2
