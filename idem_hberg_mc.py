@@ -85,9 +85,10 @@ class SpinLattice(object):
 		angle_between_vectors = np.arccos(  (  (s_x[i,j,k]*s_x_min) + (s_y[i,j,k]*s_y_min) + (s_z[i,j,k]*s_z_min)  ) / s_max**2  )
 		#print(angle_between_vectors)
 		return (angle_between_vectors-temperature/10.0*np.pi*0.5)**2 + (self.energy_calc(x,i,j,k)-energy_min-temperature)**2
-	def temp_energy_calc(self, x, theta_min, temperature, super_exchange_field):
+	def temp_energy_calc(self, x, theta_thermal_r, temperature, super_exchange_field):
 		phi = x[0]
-		theta = theta_min+temperature*0.01
+		#theta = theta_min+temperature*0.01
+		theta = theta_thermal_r
 		s_x_ijk = s_max*np.sin(theta)*np.cos(phi)
 		s_y_ijk = s_max*np.sin(theta)*np.sin(phi)
 		s_z_ijk = s_max*np.cos(theta)
@@ -169,10 +170,12 @@ class SpinLattice(object):
 					energy[i,j,k] = self.energy_calc_simple((theta[i,j,k],phi[i,j,k]),i,j,k)
 
 		return s_x, s_y, s_z, phi, theta, energy
+	def negative_of_energy_calc(self, x, super_exchange_field):
+		return -self.energy_calc(x,super_exchange_field)
 	def total_energy_calc(self):
 		self.total_energy = np.sum(self.energy)
 		return total_energy
-	def temperature_sweep(self, temperature_max, temperature_min, temperature_steps, equilibration_steps, number_of_angle_states):
+	def temperature_sweep_old(self, temperature_max, temperature_min, temperature_steps, equilibration_steps, number_of_angle_states):
 		theta = self.theta
 		phi = self.phi
 		energy = self.energy
@@ -195,45 +198,46 @@ class SpinLattice(object):
 				print("  i=", equilibration_index, end=':')
 				for ijk in random_ijk_list:
 					i,j,k = ijk[0], ijk[1], ijk[2]
-					old_energy = energy[i,j,k]*1.0
-					old_phi = phi[i,j,k]*1.0
-					old_theta = theta[i,j,k]*1.0
-					old_s_x = s_x[i,j,k]*1.0
-					old_s_y = s_y[i,j,k]*1.0
-					old_s_z = s_z[i,j,k]*1.0
+					energy_old = energy[i,j,k]*1.0
+					phi_old = phi[i,j,k]*1.0
+					theta_old = theta[i,j,k]*1.0
+					s_x_old = s_x[i,j,k]*1.0
+					s_y_old = s_y[i,j,k]*1.0
+					s_z_old = s_z[i,j,k]*1.0
 					
-					super_exchange_field = super_exchange_field_calc(i,j,k)
+					super_exchange_field_c = super_exchange_field_calc(i,j,k)
 					
-					theta_min, phi_min = spop.optimize.fmin(energy_calc, \
-					maxfun=5000, maxiter=5000, ftol=1e-6, xtol=1e-5, x0=(theta[i,j,k], phi[i,j,k]), args = (super_exchange_field,), disp=0)
-					s_x_min = s_max*np.sin(theta_min)*np.cos(phi_min)
-					s_y_min = s_max*np.sin(theta_min)*np.sin(phi_min)
-					s_z_min = s_max*np.cos(theta_min)
-					energy_min = energy_calc((theta_min, phi_min),super_exchange_field,)
+					theta_min_c, phi_min_c = spop.optimize.fmin(energy_calc, \
+					maxfun=5000, maxiter=5000, ftol=1e-6, xtol=1e-5, x0=(theta[i,j,k], phi[i,j,k]), args = (super_exchange_field_c,), disp=0)
+					s_x_min_c = s_max*np.sin(theta_min)*np.cos(phi_min)
+					s_y_min_c = s_max*np.sin(theta_min)*np.sin(phi_min)
+					s_z_min_c = s_max*np.cos(theta_min)
+					energy_min_c = energy_calc((theta_min, phi_min),super_exchange_field,)
 					
-					super_exchange_field_rot = np.dot(my_rot_mat(theta_min, phi_min), super_exchange_field)
-					single_ion_anisotropy_rot = np.dot(my_rot_mat(theta_min, phi_min), single_ion_anisotropy)
+					super_exchange_field_r = np.dot(my_rot_mat(theta_min, phi_min), super_exchange_field_c)
+					#single_ion_anisotropy_r = np.dot(my_rot_mat(theta_min, phi_min), single_ion_anisotropy)
 					
-					theta_min_rot, phi_min_rot = spop.optimize.fmin(energy_calc, \
-					maxfun=5000, maxiter=5000, ftol=1e-6, xtol=1e-5, x0=(theta[i,j,k], phi[i,j,k]), args = (super_exchange_field_rot,), disp=0)
+					theta_min_r, phi_min_r = spop.optimize.fmin(energy_calc, \
+					maxfun=5000, maxiter=5000, ftol=1e-6, xtol=1e-5, x0=(theta[i,j,k], phi[i,j,k]), args = (super_exchange_field_r,), disp=0)
 
-					s_x_min_rot = s_max*np.sin(theta_min_rot)*np.cos(phi_min_rot)
-					s_y_min_rot = s_max*np.sin(theta_min_rot)*np.sin(phi_min_rot)
-					s_z_min_rot = s_max*np.cos(theta_min_rot)					
-					energy_min_rot = energy_calc((theta_min_rot, phi_min_rot),super_exchange_field_rot,)
+					s_x_min_r = s_max*np.sin(theta_min_r)*np.cos(phi_min_r)
+					s_y_min_r = s_max*np.sin(theta_min_r)*np.sin(phi_min_r)
+					s_z_min_r = s_max*np.cos(theta_min_r)					
+					energy_min_r = energy_calc((theta_min_r, phi_min_r),super_exchange_field_r,)
 					
-					phi_min_thermal_rot = spop.optimize.fmin(temp_energy_calc, \
-					maxfun=5000, maxiter=5000, ftol=1e-6, xtol=1e-5, x0=(phi[i,j,k]), args = (theta_min, temperature, super_exchange_field_rot,), disp=0)
-					s_x_min_thermal_rot = s_max*np.sin(theta_min_rot)*np.cos(phi_min_thermal_rot)
-					s_y_min_thermal_rot = s_max*np.sin(theta_min_rot)*np.sin(phi_min_thermal_rot)
-					s_z_min_thermal_rot = s_max*np.cos(theta_min_rot)					
-					energy_min_thermal_rot = energy_calc((theta_min_rot, phi_min_rot),super_exchange_field_rot,)					
+					theta_thermal_r = 0.1 #???
+					phi_thermal_r = spop.optimize.fmin(temp_energy_calc, \
+					maxfun=5000, maxiter=5000, ftol=1e-6, xtol=1e-5, x0=(phi[i,j,k]), args = (theta_thermal_r, temperature, super_exchange_field_r,), disp=0)
+					s_x_thermal_r = s_max*np.sin(theta_thermal_r)*np.cos(phi_thermal_r)
+					s_y_thermal_r = s_max*np.sin(theta_thermal_r)*np.sin(phi_thermal_r)
+					s_z_thermal_r = s_max*np.cos(theta_thermal_r)					
+					energy_thermal_r = energy_calc((theta_thermal_r, phi_thermal_r),super_exchange_field_r,)
 					
 					
-					s_x_min = s_max*np.sin(theta_min)*np.cos(phi_min)
-					s_y_min = s_max*np.sin(theta_min)*np.sin(phi_min)
-					s_z_min = s_max*np.cos(theta_min)
-					energy_min = energy_calc((theta_min_rot, phi_min_rot),super_exchange_field,)
+					s_x_thermal_c = s_max*np.sin(theta_thermal_r)*np.cos(phi_thermal_r)
+					s_y_thermal_c = s_max*np.sin(theta_thermal_r)*np.sin(phi_thermal_r)
+					s_z_thermal_c = s_max*np.cos(theta_thermal_r)					
+					energy_thermal_c = energy_calc((theta_thermal_r, phi_thermal_r),super_exchange_field_r,)
 					
 					
 					phi[i,j,k] = phi_min
@@ -245,7 +249,98 @@ class SpinLattice(object):
 					
 				print(np.sum(energy), end=', ')
 			
+	def temperature_sweep(self, temperature_max, temperature_min, temperature_steps, equilibration_steps, number_of_angle_states):
+		theta = self.theta
+		phi = self.phi
+		energy = self.energy
+		energy_calc = self.energy_calc
+		negative_of_energy_calc = self.negative_of_energy_calc
+		energy_calc_simple = self.energy_calc_simple
+		super_exchange_field_calc = self.super_exchange_field_calc
+		edge_length = self.edge_length
+		s_x = self.s_x
+		s_y = self.s_y
+		s_z = self.s_z
+		single_ion_anisotropy = self.single_ion_anisotropy
+		random_ijk_list = self.random_ijk_list
+		possible_angles_list = self.possible_angles_list
+		temp_energy_calc = self.temp_energy_calc
+		
+		spaced_theta_values = np.arccos(1-2*np.linspace(0,1,101))
+		
+		temperature_E_list = []
+		
+		print("sweeping temperature...")
+		for temperature in np.linspace(temperature_max, temperature_min, temperature_steps):
+			print("\ntemperature=",temperature)
+			for equilibration_index in np.linspace(0,equilibration_steps-1,equilibration_steps):
+				print("  i=", equilibration_index, end=':')
+				for ijk in random_ijk_list:
+					i,j,k = ijk[0], ijk[1], ijk[2]
 					
+					super_exchange_field_c = super_exchange_field_calc(i,j,k)
+					
+					theta_min_c, phi_min_c = spop.optimize.fmin(energy_calc, \
+					maxfun=5000, maxiter=5000, ftol=1e-6, xtol=1e-5, x0=(theta[i,j,k], phi[i,j,k]), args = (super_exchange_field_c,), disp=0)
+					s_x_min_c = s_max*np.sin(theta_min_c)*np.cos(phi_min_c)
+					s_y_min_c = s_max*np.sin(theta_min_c)*np.sin(phi_min_c)
+					s_z_min_c = s_max*np.cos(theta_min_c)
+					energy_min_c = energy_calc((theta_min_c, phi_min_c),super_exchange_field_c,)
+					
+					
+					super_exchange_field_r = np.dot(my_rot_mat(theta_min_c, phi_min_c), super_exchange_field_c)
+					#single_ion_anisotropy_r = np.dot(my_rot_mat(theta_min, phi_min), single_ion_anisotropy)
+					
+					#i think i don't need to calculate these intermediates, if i define my rotation matrix properly, they are both zero!
+					theta_min_r, phi_min_r = spop.optimize.fmin(energy_calc, \
+					maxfun=5000, maxiter=5000, ftol=1e-6, xtol=1e-5, x0=(theta[i,j,k], phi[i,j,k]), args = (super_exchange_field_r,), disp=0)
+					
+					phi_thermal_r = random.random()*2*np.pi
+					
+					E_r_list = energy_calc((spaced_theta_values, phi_thermal_r),super_exchange_field_r,)
+					
+					P_r_list = np.exp(-E_r_list/temperature)
+					P_r_list = P_r_list/np.sum(P_r_list)
+									
+					theta_thermal_r = np.random.choice(spaced_theta_values, p=P_r_list)
+					
+					s_x_thermal_r = s_max*np.sin(theta_thermal_r)*np.cos(phi_thermal_r)
+					s_y_thermal_r = s_max*np.sin(theta_thermal_r)*np.sin(phi_thermal_r)
+					s_z_thermal_r = s_max*np.cos(theta_thermal_r)					
+					energy_thermal_r = energy_calc((theta_thermal_r, phi_thermal_r),super_exchange_field_r,)
+					
+
+					s_thermal_r = np.array([s_x_thermal_r, s_y_thermal_r, s_z_thermal_r])
+
+					s_thermal_c = np.dot(my_rot_mat(-theta_min_c, -phi_min_c), s_thermal_r)
+					
+					s_x_thermal_c, s_y_thermal_c, s_z_thermal_c = s_thermal_c
+					theta_thermal_c = np.arccos(s_z_thermal_c / np.sqrt(s_x_thermal_c**2 + s_y_thermal_c**2 +s_z_thermal_c**2))
+					phi_thermal_c = -np.arctan2(s_y_thermal_c, s_x_thermal_c)
+					energy_thermal_c = energy_calc((theta_thermal_c, phi_thermal_c),super_exchange_field_c,)
+					
+					#print("theta", theta_thermal_r, theta_thermal_c, theta_min_c)
+					#print("phi", phi_thermal_r, phi_thermal_c, phi_min_c)
+					
+					#print("r vs c for e", energy_thermal_r, energy_thermal_c)
+					
+					phi[i,j,k] = phi_thermal_c
+					theta[i,j,k] = theta_thermal_c
+					s_x[i,j,k] = s_max*np.sin(theta[i,j,k])*np.cos(phi[i,j,k])
+					s_y[i,j,k] = s_max*np.sin(theta[i,j,k])*np.sin(phi[i,j,k])
+					s_z[i,j,k] = s_max*np.cos(theta[i,j,k])
+					energy[i,j,k] = energy_calc((theta[i,j,k],phi[i,j,k]),super_exchange_field_c,)
+					
+				#E_list.append(np.sum(energy))
+			
+			temperature_E_list.append(np.sum(energy))
+			print('\nfinal energy=', np.sum(energy))
+			#plt.plot(E_list)
+			#plt.show()
+			
+		plt.plot(np.linspace(temperature_max, temperature_min, temperature_steps), temperature_E_list,'.-')
+		plt.show()
+		
 	def random_ijk_list_generator(self):
 		random_ijk_list = self.random_ijk_list
 		edge_length = self.edge_length
@@ -476,9 +571,9 @@ print('end debugging')
 
 
 my_lattice.random_ijk_list_generator()
-my_lattice.possible_angles_list_generator(1000)
+#my_lattice.possible_angles_list_generator(1000)
 #print(my_lattice.possible_angles_list)
-my_lattice.temperature_sweep(temperature_max=10.0, temperature_min=1.0, temperature_steps=2.0, equilibration_steps=20, number_of_angle_states=100)
+my_lattice.temperature_sweep(temperature_max=20.0, temperature_min=1.0, temperature_steps=20.0, equilibration_steps=30, number_of_angle_states=100)
 
 print('\ntime=', time()-start_time)
 exit()
