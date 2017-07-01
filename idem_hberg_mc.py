@@ -17,7 +17,7 @@ hbar = 6.626070040e-34 #SI units
 #arbitrary number visualize spins
 moment_visualization_scale_factor = 0.1
 
-edge_length = 4 #length of 3-dimensional lattice, such that N = edge_length^3
+edge_length = 10 #length of 3-dimensional lattice, such that N = edge_length^3
 s_max = 2 #spin number
 single_ion_anisotropy = np.array([0,0,0]) #anisotropy vector, in Kelvin units
 superexchange = 1 #nearest neighbor isotropic superexchange parameter, in Kelvin units
@@ -35,7 +35,7 @@ class SpinLattice(object):
 	energy = this is an edge_length**3 array of the site energies
 
 	"""
-	def __init__(self, edge_length=None, s_max=None, single_ion_anisotropy=None, superexchange=None, magnetic_field=None, s_x=None, s_y=None, s_z=None, phi=None, theta=None, energy=None, total_energy=None, random_ijk_array=None, possible_angles_list=None):
+	def __init__(self, edge_length=None, s_max=None, single_ion_anisotropy=None, superexchange=None, magnetic_field=None, s_x=None, s_y=None, s_z=None, phi=None, theta=None, energy=None, total_energy=None, random_ijk_array=None, possible_angles_list=None,temporary_pair_corr=None):
 		self.edge_length = edge_length
 		self.single_ion_anisotropy = single_ion_anisotropy
 		self.s_max = s_max
@@ -50,6 +50,7 @@ class SpinLattice(object):
 		self.total_energy = 0
 		self.random_ijk_list = []
 		self.possible_angles_list = []
+		self.temporary_pair_corr = 0
 	def __str__(self):
 		return "SpinLattice"
 	def get_edge_length(self):
@@ -269,6 +270,7 @@ class SpinLattice(object):
 		spaced_theta_values = np.arccos(1-2*np.linspace(0,1,101))
 		
 		temperature_E_list = []
+		temporary_pair_corr_list = []
 		
 		print("sweeping temperature...")
 		for temperature in np.linspace(temperature_max, temperature_min, temperature_steps):
@@ -334,11 +336,16 @@ class SpinLattice(object):
 				#E_list.append(np.sum(energy))
 			
 			temperature_E_list.append(np.sum(energy))
-			print('\nfinal energy=', np.sum(energy))
+			temp_pair_corr_var = self.pair_corr_calc()
+			temporary_pair_corr_list.append(temp_pair_corr_var)
+			print('\nfinal energy=', np.sum(energy), 'pair corr',temp_pair_corr_var)
 			#plt.plot(E_list)
 			#plt.show()
-			
+		
+		
 		plt.plot(np.linspace(temperature_max, temperature_min, temperature_steps), temperature_E_list,'.-')
+		plt.figure()
+		plt.plot(np.linspace(temperature_max, temperature_min, temperature_steps), temporary_pair_corr_list,'.-')
 		plt.show()
 		
 	def random_ijk_list_generator(self):
@@ -399,8 +406,61 @@ class SpinLattice(object):
 		else:
 			super_exchange_field_ijk = super_exchange_field_ijk + superexchange*np.array([s_x[i,j,edge_length-1] , s_y[i,j,edge_length-1] , s_z[i,j,edge_length-1]])
 		return super_exchange_field_ijk
+
+	def pair_corr_calc(self):
+		s_x = self.s_x
+		s_y = self.s_y
+		s_z = self.s_z
+		
+		pair_corrxa = np.zeros(np.shape(s_x))
+		pair_corrya = np.zeros(np.shape(s_x))
+		pair_corrza = np.zeros(np.shape(s_x))
+		
+		pair_corrxb = np.zeros(np.shape(s_x))
+		pair_corryb = np.zeros(np.shape(s_x))
+		pair_corrzb = np.zeros(np.shape(s_x))
+		
+		pair_corrxc = np.zeros(np.shape(s_x))
+		pair_corryc = np.zeros(np.shape(s_x))
+		pair_corrzc = np.zeros(np.shape(s_x))
+		for i in range(0,edge_length):
+			for j in range(0,edge_length):
+				for k in range(0,edge_length):
+					pair_corrxa[i,j,k], pair_corrya[i,j,k], pair_corrza[i,j,k], pair_corrxb[i,j,k], pair_corryb[i,j,k], pair_corrzb[i,j,k], pair_corrxc[i,j,k], pair_corryc[i,j,k], pair_corrzc[i,j,k] = self.pair_corr(i,j,k)
+		return np.sum(pair_corrxa)+np.sum(pair_corrya)+np.sum(pair_corrza)  +  np.sum(pair_corrxb)+np.sum(pair_corryb)+np.sum(pair_corrzb)  +  np.sum(pair_corrxc)+np.sum(pair_corryc)+np.sum(pair_corrzc)
 			
+	def pair_corr(self,i,j,k):
+		s_x = self.s_x
+		s_y = self.s_y
+		s_z = self.s_z
+		if i < edge_length-1:
+			pair_corrxa_ijk = s_x[i,j,k]*s_x[i+1,j,k]
+			pair_corrya_ijk = s_y[i,j,k]*s_y[i+1,j,k]
+			pair_corrza_ijk = s_z[i,j,k]*s_z[i+1,j,k]
+		else:
+			pair_corrxa_ijk = s_x[i,j,k]*s_x[0,j,k]
+			pair_corrya_ijk = s_y[i,j,k]*s_y[0,j,k]
+			pair_corrza_ijk = s_z[i,j,k]*s_z[0,j,k]
 			
+		if j < edge_length-1:
+			pair_corrxb_ijk = s_x[i,j,k]*s_x[i,j+1,k]
+			pair_corryb_ijk = s_y[i,j,k]*s_y[i,j+1,k]
+			pair_corrzb_ijk = s_z[i,j,k]*s_z[i,j+1,k]
+		else:
+			pair_corrxb_ijk = s_x[i,j,k]*s_x[i,0,k]
+			pair_corryb_ijk = s_y[i,j,k]*s_y[i,0,k]
+			pair_corrzb_ijk = s_z[i,j,k]*s_z[i,0,k]
+			
+		if k < edge_length-1:
+			pair_corrxc_ijk = s_x[i,j,k]*s_x[i,j,k+1]
+			pair_corryc_ijk = s_y[i,j,k]*s_y[i,j,k+1]
+			pair_corrzc_ijk = s_z[i,j,k]*s_z[i,j,k+1]
+		else:
+			pair_corrxc_ijk = s_x[i,j,k]*s_x[i,j,0]
+			pair_corryc_ijk = s_y[i,j,k]*s_y[i,j,0]
+			pair_corrzc_ijk = s_z[i,j,k]*s_z[i,j,0]
+
+		return pair_corrxa_ijk, pair_corrya_ijk, pair_corrza_ijk, pair_corrxb_ijk, pair_corryb_ijk, pair_corrzb_ijk, pair_corrxc_ijk, pair_corryc_ijk, pair_corrzc_ijk
 
 							
 class PairCorrelation(object):
