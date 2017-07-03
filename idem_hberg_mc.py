@@ -17,14 +17,14 @@ hbar = 6.626070040e-34 #SI units
 #arbitrary number visualize spins
 moment_visualization_scale_factor = 0.1
 
-edge_length = 10 #length of 3-dimensional lattice, such that N = edge_length^3
-s_max = 2 #spin number
-single_ion_anisotropy = np.array([0,0,0]) #anisotropy vector, in Kelvin units
-superexchange = 1 #nearest neighbor isotropic superexchange parameter, in Kelvin units
-magnetic_field = np.array([0,0,0]) #magnetic field, in Kelvin units
-t_debye = 6*2*superexchange*s_max*s_max
+#edge_length = 4 #length of 3-dimensional lattice, such that N = edge_length^3
+#s_max = 2 #spin number
+#single_ion_anisotropy = np.array([0,0,0]) #anisotropy vector, in Kelvin units
+superexchange = -1 #nearest neighbor isotropic superexchange parameter, in Kelvin units
+#magnetic_field = np.array([0,0,0]) #magnetic field, in Kelvin units
+#t_debye = 6*2*superexchange*s_max*s_max
 
-E0_single_spin = -np.abs(6*superexchange*s_max**2)-single_ion_anisotropy*s_max**2
+#E0_single_spin = -np.abs(6*superexchange*s_max**2)-single_ion_anisotropy*s_max**2
 
 class SpinLattice(object):
 	""" this class is defined to house the lattice parameters and variables
@@ -35,7 +35,7 @@ class SpinLattice(object):
 	energy = this is an edge_length**3 array of the site energies
 
 	"""
-	def __init__(self, edge_length=None, s_max=None, single_ion_anisotropy=None, superexchange=None, magnetic_field=None, s_x=None, s_y=None, s_z=None, phi=None, theta=None, energy=None, total_energy=None, random_ijk_array=None, possible_angles_list=None,temporary_pair_corr=None):
+	def __init__(self, edge_length=None, s_max=None, single_ion_anisotropy=None, superexchange=None, magnetic_field=None, s_x=None, s_y=None, s_z=None, phi=None, theta=None, energy=None, total_energy=None, random_ijk_array=None, possible_angles_list=None,temporary_pair_corr=None, atom_type=None):
 		self.edge_length = edge_length
 		self.single_ion_anisotropy = single_ion_anisotropy
 		self.s_max = s_max
@@ -51,6 +51,7 @@ class SpinLattice(object):
 		self.random_ijk_list = []
 		self.possible_angles_list = []
 		self.temporary_pair_corr = 0
+		self.atom_type = np.zeros((edge_length,edge_length,edge_length))
 	def __str__(self):
 		return "SpinLattice"
 	def get_edge_length(self):
@@ -101,6 +102,7 @@ class SpinLattice(object):
 		
 		return (energy_ijk-thermal_energy)**2
 	def energy_calc(self, x, super_exchange_field):
+		s_max = self.s_max
 		theta, phi = x[0], x[1]
 		s_x_ijk = s_max*np.sin(theta)*np.cos(phi)
 		s_y_ijk = s_max*np.sin(theta)*np.sin(phi)
@@ -111,6 +113,8 @@ class SpinLattice(object):
 		
 		return energy_ijk
 	def energy_calc_simple(self, x, i, j, k):
+		s_max = self.s_max
+		edge_length = self.edge_length
 		s_x = self.s_x
 		s_y = self.s_y
 		s_z = self.s_z
@@ -158,11 +162,12 @@ class SpinLattice(object):
 			energy_ijk += superexchange*(s_x_ijk*s_x[i,j,edge_length-1] + s_y_ijk*s_y[i,j,edge_length-1] + s_z_ijk*s_z[i,j,edge_length-1])
 		return energy_ijk
 	def init_rand_arrays(self):
-		edge_length, s_x, s_y, s_z, phi, theta, energy = self.edge_length, self.s_x, self.s_y, self.s_z, self.phi, self.theta, self.energy
+		edge_length, s_x, s_y, s_z, s_max, phi, theta, energy, atom_type = self.edge_length, self.s_x, self.s_y, self.s_z, self.s_max, self.phi, self.theta, self.energy, self.atom_type
 		#initialize the spin momentum vectors to have a random direction
 		for i in range(0,edge_length):
 			for j in range(0,edge_length):
 				for k in range(0,edge_length):
+					atom_type[i,j,k] = np.random.choice([0,1],p=[0.8, 0.2])
 					phi[i,j,k] = np.random.rand()*2*np.pi
 					theta[i,j,k] = np.arccos(1.0-2.0*np.random.rand())# asdf
 					s_x[i,j,k] = s_max*np.sin(theta[i,j,k])*np.cos(phi[i,j,k])
@@ -251,6 +256,7 @@ class SpinLattice(object):
 				print(np.sum(energy), end=', ')
 			
 	def temperature_sweep(self, temperature_max, temperature_min, temperature_steps, equilibration_steps, number_of_angle_states):
+		s_max = self.s_max
 		theta = self.theta
 		phi = self.phi
 		energy = self.energy
@@ -270,6 +276,7 @@ class SpinLattice(object):
 		spaced_theta_values = np.arccos(1-2*np.linspace(0,1,101))
 		
 		temperature_E_list = []
+		equilibration_energy_list = []
 		temporary_pair_corr_list = []
 		
 		print("sweeping temperature...")
@@ -333,12 +340,13 @@ class SpinLattice(object):
 					s_z[i,j,k] = s_max*np.cos(theta[i,j,k])
 					energy[i,j,k] = energy_calc((theta[i,j,k],phi[i,j,k]),super_exchange_field_c,)
 					
-				#E_list.append(np.sum(energy))
+				equilibration_energy_list.append(np.sum(energy))
 			
 			temperature_E_list.append(np.sum(energy))
 			temp_pair_corr_var = self.pair_corr_calc()
 			temporary_pair_corr_list.append(temp_pair_corr_var)
 			print('\nfinal energy=', np.sum(energy), 'pair corr',temp_pair_corr_var)
+			
 			#plt.plot(E_list)
 			#plt.show()
 		
@@ -346,6 +354,8 @@ class SpinLattice(object):
 		plt.plot(np.linspace(temperature_max, temperature_min, temperature_steps), temperature_E_list,'.-')
 		plt.figure()
 		plt.plot(np.linspace(temperature_max, temperature_min, temperature_steps), temporary_pair_corr_list,'.-')
+		plt.figure()
+		plt.plot(equilibration_energy_list)
 		plt.show()
 		
 	def random_ijk_list_generator(self):
@@ -373,6 +383,8 @@ class SpinLattice(object):
 
 	def super_exchange_field_calc(self,i,j,k):
 		#theta, phi = self.theta[i,j,k], self.phi[i,j,k]
+		atom_type = self.atom_type
+		edge_length = self.edge_length
 		s_x = self.s_x
 		s_y = self.s_y
 		s_z = self.s_z
@@ -408,6 +420,8 @@ class SpinLattice(object):
 		return super_exchange_field_ijk
 
 	def pair_corr_calc(self):
+		edge_length = self.edge_length
+	
 		s_x = self.s_x
 		s_y = self.s_y
 		s_z = self.s_z
@@ -430,6 +444,7 @@ class SpinLattice(object):
 		return np.sum(pair_corrxa)+np.sum(pair_corrya)+np.sum(pair_corrza)  +  np.sum(pair_corrxb)+np.sum(pair_corryb)+np.sum(pair_corrzb)  +  np.sum(pair_corrxc)+np.sum(pair_corryc)+np.sum(pair_corrzc)
 			
 	def pair_corr(self,i,j,k):
+		edge_length = self.edge_length
 		s_x = self.s_x
 		s_y = self.s_y
 		s_z = self.s_z
@@ -621,8 +636,10 @@ def createInvCDF(t):
 	
 print(time()-start_time)
 	
-my_lattice = SpinLattice(edge_length, s_max, single_ion_anisotropy, superexchange, magnetic_field)
+my_lattice = SpinLattice(edge_length = 4, s_max = 2, single_ion_anisotropy = np.array([0,0,0]), superexchange = -1, magnetic_field = np.array([0,0,0]))
 my_lattice.init_rand_arrays()
+print(my_lattice.atom_type)
+print(fart)
 print(time()-start_time)
 print('start debugging')
 
@@ -633,7 +650,7 @@ print('end debugging')
 my_lattice.random_ijk_list_generator()
 #my_lattice.possible_angles_list_generator(1000)
 #print(my_lattice.possible_angles_list)
-my_lattice.temperature_sweep(temperature_max=20.0, temperature_min=1.0, temperature_steps=20.0, equilibration_steps=30, number_of_angle_states=100)
+my_lattice.temperature_sweep(temperature_max=20.0, temperature_min=1.0, temperature_steps=20.0, equilibration_steps=50, number_of_angle_states=100)
 
 print('\ntime=', time()-start_time)
 exit()
