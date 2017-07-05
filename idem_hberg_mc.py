@@ -35,11 +35,14 @@ class SpinLattice(object):
 	energy = this is an edge_length**3 array of the site energies
 
 	"""
-	def __init__(self, edge_length=None, s_max=None, single_ion_anisotropy=None, superexchange=None, magnetic_field=None, s_x=None, s_y=None, s_z=None, phi=None, theta=None, energy=None, total_energy=None, random_ijk_array=None, possible_angles_list=None,temporary_pair_corr=None, atom_type=None):
+	def __init__(self, edge_length=None, iron_doping_level=None, s_max=None, single_ion_anisotropy_0 = None, single_ion_anisotropy_1 = None, single_ion_anisotropy=None, superexchange=None, magnetic_field=None, s_x=None, s_y=None, s_z=None, phi=None, theta=None, energy=None, total_energy=None, random_ijk_array=None, possible_angles_list=None,temporary_pair_corr=None, atom_type=None):
+		self.iron_doping_level = iron_doping_level
 		self.edge_length = edge_length
-		self.single_ion_anisotropy = single_ion_anisotropy
+		self.single_ion_anisotropy = np.zeros((edge_length,edge_length,edge_length,3))
+		self.single_ion_anisotropy_0 = single_ion_anisotropy_0
+		self.single_ion_anisotropy_1 = single_ion_anisotropy_1
 		self.s_max = s_max
-		self.superexchange = superexchange
+		self.superexchange_array = np.zeros((edge_length,edge_length,edge_length,6))
 		self.magnetic_field = magnetic_field
 		self.s_x = np.zeros((edge_length,edge_length,edge_length))
 		self.s_y = np.zeros((edge_length,edge_length,edge_length))
@@ -51,7 +54,7 @@ class SpinLattice(object):
 		self.random_ijk_list = []
 		self.possible_angles_list = []
 		self.temporary_pair_corr = 0
-		self.atom_type = np.zeros((edge_length,edge_length,edge_length))
+		self.atom_type = np.zeros((edge_length,edge_length,edge_length), dtype = np.int8)
 	def __str__(self):
 		return "SpinLattice"
 	def get_edge_length(self):
@@ -124,56 +127,146 @@ class SpinLattice(object):
 		s_z_ijk = s_max*np.cos(theta)
 		s_vec = np.array([s_x_ijk, s_y_ijk, s_z_ijk])
 		energy_ijk = 0
-		superexchange = self.superexchange
+		#superexchange = self.superexchange
+		superexchange_array = self.superexchange_array
+		superexchange = superexchange_array[i,j,k]
 		single_ion_anisotropy = self.single_ion_anisotropy
 
-		energy_ijk += np.dot(single_ion_anisotropy, s_vec)
+		energy_ijk += np.dot(single_ion_anisotropy[i,j,k], s_vec)
 
-		#if Type[i,j,k]== 1:
-		#    energy_ijk += DMn[0]*s_x_ijk**2 + DMn[1]*s_y_ijk**2 + DMn[2]*s_z_ijk**2
-		#else:
-		#    energy_ijk += DFe[0]*s_x_ijk**2 + DFe[1]*s_y_ijk**2 + DFe[2]*s_z_ijk**2
-		#    #energy_ijk += DFe_cubic*(s_x_ijk**2*s_y_ijk**2+s_y_ijk**2*s_z_ijk**2+s_z_ijk**2*s_x_ijk**2)
 		if i < edge_length-1:
-			energy_ijk += superexchange*(s_x_ijk*s_x[i+1,j,k] + s_y_ijk*s_y[i+1,j,k] + s_z_ijk*s_z[i+1,j,k])
+			energy_ijk += superexchange[0]*(s_x_ijk*s_x[i+1,j,k] + s_y_ijk*s_y[i+1,j,k] + s_z_ijk*s_z[i+1,j,k])
 		else:
-			energy_ijk += superexchange*(s_x_ijk*s_x[0,j,k] + s_y_ijk*s_y[0,j,k] + s_z_ijk*s_z[0,j,k])
+			energy_ijk += superexchange[0]*(s_x_ijk*s_x[0,j,k] + s_y_ijk*s_y[0,j,k] + s_z_ijk*s_z[0,j,k])
 		if i > 0:
-			energy_ijk += superexchange*(s_x_ijk*s_x[i-1,j,k] + s_y_ijk*s_y[i-1,j,k] + s_z_ijk*s_z[i-1,j,k])
+			energy_ijk += superexchange[1]*(s_x_ijk*s_x[i-1,j,k] + s_y_ijk*s_y[i-1,j,k] + s_z_ijk*s_z[i-1,j,k])
 		else:
-			energy_ijk += superexchange*(s_x_ijk*s_x[edge_length-1,j,k] + s_y_ijk*s_y[edge_length-1,j,k] + s_z_ijk*s_z[edge_length-1,j,k])
+			energy_ijk += superexchange[1]*(s_x_ijk*s_x[edge_length-1,j,k] + s_y_ijk*s_y[edge_length-1,j,k] + s_z_ijk*s_z[edge_length-1,j,k])
 			
 		if j < edge_length-1:
-			energy_ijk += superexchange*(s_x_ijk*s_x[i,j+1,k] + s_y_ijk*s_y[i,j+1,k] + s_z_ijk*s_z[i,j+1,k])
+			energy_ijk += superexchange[2]*(s_x_ijk*s_x[i,j+1,k] + s_y_ijk*s_y[i,j+1,k] + s_z_ijk*s_z[i,j+1,k])
 		else:
-			energy_ijk += superexchange*(s_x_ijk*s_x[i,0,k] + s_y_ijk*s_y[i,0,k] + s_z_ijk*s_z[i,0,k])
+			energy_ijk += superexchange[2]*(s_x_ijk*s_x[i,0,k] + s_y_ijk*s_y[i,0,k] + s_z_ijk*s_z[i,0,k])
 		if j > 0:
-			energy_ijk += superexchange*(s_x_ijk*s_x[i,j-1,k] + s_y_ijk*s_y[i,j-1,k] + s_z_ijk*s_z[i,j-1,k])
+			energy_ijk += superexchange[3]*(s_x_ijk*s_x[i,j-1,k] + s_y_ijk*s_y[i,j-1,k] + s_z_ijk*s_z[i,j-1,k])
 		else:
-			energy_ijk += superexchange*(s_x_ijk*s_x[i,edge_length-1,k] + s_y_ijk*s_y[i,edge_length-1,k] + s_z_ijk*s_z[i,edge_length-1,k])
+			energy_ijk += superexchange[3]*(s_x_ijk*s_x[i,edge_length-1,k] + s_y_ijk*s_y[i,edge_length-1,k] + s_z_ijk*s_z[i,edge_length-1,k])
 			
 		if k < edge_length-1:
-			energy_ijk += superexchange*(s_x_ijk*s_x[i,j,k+1] + s_y_ijk*s_y[i,j,k+1] + s_z_ijk*s_z[i,j,k+1])
+			energy_ijk += superexchange[4]*(s_x_ijk*s_x[i,j,k+1] + s_y_ijk*s_y[i,j,k+1] + s_z_ijk*s_z[i,j,k+1])
 		else:
-			energy_ijk += superexchange*(s_x_ijk*s_x[i,j,0] + s_y_ijk*s_y[i,j,0] + s_z_ijk*s_z[i,j,0])
+			energy_ijk += superexchange[4]*(s_x_ijk*s_x[i,j,0] + s_y_ijk*s_y[i,j,0] + s_z_ijk*s_z[i,j,0])
 		if k > 0:
-			energy_ijk += superexchange*(s_x_ijk*s_x[i,j,k-1] + s_y_ijk*s_y[i,j,k-1] + s_z_ijk*s_z[i,j,k-1])
+			energy_ijk += superexchange[5]*(s_x_ijk*s_x[i,j,k-1] + s_y_ijk*s_y[i,j,k-1] + s_z_ijk*s_z[i,j,k-1])
 		else:
-			energy_ijk += superexchange*(s_x_ijk*s_x[i,j,edge_length-1] + s_y_ijk*s_y[i,j,edge_length-1] + s_z_ijk*s_z[i,j,edge_length-1])
+			energy_ijk += superexchange[5]*(s_x_ijk*s_x[i,j,edge_length-1] + s_y_ijk*s_y[i,j,edge_length-1] + s_z_ijk*s_z[i,j,edge_length-1])
 		return energy_ijk
+	def superexchange_array_calc(self,i,j,k):
+		atom_type = self.atom_type
+		edge_length = self.edge_length
+		s_x = self.s_x
+		s_y = self.s_y
+		s_z = self.s_z
+		superexchange_array = self.superexchange_array
+		super_exchange_ijk = superexchange_array[i,j,k] #np.array([0,0,0,0,0,0])
+		atom_type_ijk = atom_type[i,j,k]
+		
+		JFeFe = 62.0
+		JMnMnb = 6.7
+		JMnMnac = -9.6
+		JMnFeb = 17.0
+		JMnFeac = 29.0
+
+		JFeFex = JFeFe
+		JFeFey = JFeFe
+		JFeFez = JFeFe
+
+		JMnMnx = JMnMnac
+		JMnMny = JMnMnb
+		JMnMnz = JMnMnac
+
+		JMnFex = JMnFeac
+		JMnFey = JMnFeb
+		JMnFez = JMnFeac
+
+
+		def superexchange_x(type1,type2):
+			if type1 == 0 and type2 == 0: #Fe-Fe
+				return JFeFex
+			elif type1 == 1 and type2 == 1: #Mn-Mn
+				return JMnMnx
+			else:
+				return JMnFex
+
+		def superexchange_y(type1,type2):
+			if type1 == 0 and type2 == 0: #Fe-Fe
+				return JFeFey
+			elif type1 == 1 and type2 == 1: #Mn-Mn
+				return JMnMny
+			else:
+				return JMnFey
+
+		def superexchange_z(type1,type2):
+			if type1 == 0 and type2 == 0: #Fe-Fe
+				return JFeFez
+			elif type1 == 1 and type2 == 1: #Mn-Mn
+				return JMnMnz
+			else:
+				return JMnFez
+		
+		if i < edge_length-1:
+			super_exchange_ijk[0] = superexchange_x(atom_type_ijk, atom_type[i+1,j,k])
+		else:
+			super_exchange_ijk[0] = superexchange_x(atom_type_ijk, atom_type[0,j,k])
+		if i > 0:
+			super_exchange_ijk[1] = superexchange_x(atom_type_ijk, atom_type[i-1,j,k])
+		else:
+			super_exchange_ijk[1] = superexchange_x(atom_type_ijk, atom_type[edge_length-1,j,k])
+			
+		if j < edge_length-1:
+			super_exchange_ijk[2] = superexchange_y(atom_type_ijk, atom_type[i,j+1,k])
+		else:
+			super_exchange_ijk[2] = superexchange_y(atom_type_ijk, atom_type[i,0,k])
+		if j > 0:
+			super_exchange_ijk[3] = superexchange_y(atom_type_ijk, atom_type[i,j-1,k])
+		else:
+			super_exchange_ijk[3] = superexchange_y(atom_type_ijk, atom_type[i,edge_length-1,k])
+			
+		if k < edge_length-1:
+			super_exchange_ijk[4] = superexchange_z(atom_type_ijk, atom_type[i,j,k+1])
+		else:
+			super_exchange_ijk[4] = superexchange_z(atom_type_ijk, atom_type[i,j,0])
+		if k > 0:
+			super_exchange_ijk[5] = superexchange_z(atom_type_ijk, atom_type[i,j,k-1])
+		else:
+			super_exchange_ijk[5] = superexchange_z(atom_type_ijk, atom_type[i,j,edge_length-1])
+		return super_exchange_ijk
+		
 	def init_rand_arrays(self):
+		iron_doping_level = self.iron_doping_level
 		edge_length, s_x, s_y, s_z, s_max, phi, theta, energy, atom_type = self.edge_length, self.s_x, self.s_y, self.s_z, self.s_max, self.phi, self.theta, self.energy, self.atom_type
+		single_ion_anisotropy, single_ion_anisotropy_0, single_ion_anisotropy_1 = self.single_ion_anisotropy, self.single_ion_anisotropy_0, self.single_ion_anisotropy_1
+		superexchange_array = self.superexchange_array
+		superexchange_array_calc = self.superexchange_array_calc
+		single_ion_anisotropy_list = [single_ion_anisotropy_0, single_ion_anisotropy_1]
 		#initialize the spin momentum vectors to have a random direction
 		for i in range(0,edge_length):
 			for j in range(0,edge_length):
 				for k in range(0,edge_length):
-					atom_type[i,j,k] = np.random.choice([0,1],p=[0.8, 0.2])
+					atom_type[i,j,k] = int(np.random.choice([0,1],p=[iron_doping_level, 1.0-iron_doping_level]))
+					print(atom_type[i,j,k])
+					print(single_ion_anisotropy_list[atom_type[i,j,k]])
+					single_ion_anisotropy[i,j,k] = single_ion_anisotropy_list[atom_type[i,j,k]]
+					
+					superexchange_array[i,j,k] = superexchange_array_calc(i,j,k)
+					
 					phi[i,j,k] = np.random.rand()*2*np.pi
 					theta[i,j,k] = np.arccos(1.0-2.0*np.random.rand())# asdf
 					s_x[i,j,k] = s_max*np.sin(theta[i,j,k])*np.cos(phi[i,j,k])
 					s_y[i,j,k] = s_max*np.sin(theta[i,j,k])*np.sin(phi[i,j,k])
 					s_z[i,j,k] = s_max*np.cos(theta[i,j,k])
 					energy[i,j,k] = self.energy_calc_simple((theta[i,j,k],phi[i,j,k]),i,j,k)
+					
 
 		return s_x, s_y, s_z, phi, theta, energy
 	def negative_of_energy_calc(self, x, super_exchange_field):
@@ -388,35 +481,35 @@ class SpinLattice(object):
 		s_x = self.s_x
 		s_y = self.s_y
 		s_z = self.s_z
-		superexchange = self.superexchange
+		superexchange = self.superexchange_array[i,j,k]
 		super_exchange_field_ijk = np.array([0,0,0])
 		
 		if i < edge_length-1:
-			super_exchange_field_ijk = super_exchange_field_ijk + superexchange*np.array([s_x[i+1,j,k] , s_y[i+1,j,k] , s_z[i+1,j,k]])
+			super_exchange_field_ijk = super_exchange_field_ijk + superexchange[0]*np.array([s_x[i+1,j,k] , s_y[i+1,j,k] , s_z[i+1,j,k]])
 		else:
-			super_exchange_field_ijk = super_exchange_field_ijk + superexchange*np.array([s_x[0,j,k] , s_y[0,j,k] , s_z[0,j,k]])
+			super_exchange_field_ijk = super_exchange_field_ijk + superexchange[0]*np.array([s_x[0,j,k] , s_y[0,j,k] , s_z[0,j,k]])
 		if i > 0:
-			super_exchange_field_ijk = super_exchange_field_ijk + superexchange*np.array([s_x[i-1,j,k] , s_y[i-1,j,k] , s_z[i-1,j,k]])
+			super_exchange_field_ijk = super_exchange_field_ijk + superexchange[1]*np.array([s_x[i-1,j,k] , s_y[i-1,j,k] , s_z[i-1,j,k]])
 		else:
-			super_exchange_field_ijk = super_exchange_field_ijk + superexchange*np.array([s_x[edge_length-1,j,k] , s_y[edge_length-1,j,k] , s_z[edge_length-1,j,k]])
+			super_exchange_field_ijk = super_exchange_field_ijk + superexchange[1]*np.array([s_x[edge_length-1,j,k] , s_y[edge_length-1,j,k] , s_z[edge_length-1,j,k]])
 			
 		if j < edge_length-1:
-			super_exchange_field_ijk = super_exchange_field_ijk + superexchange*np.array([s_x[i,j+1,k] , s_y[i,j+1,k] , s_z[i,j+1,k]])
+			super_exchange_field_ijk = super_exchange_field_ijk + superexchange[2]*np.array([s_x[i,j+1,k] , s_y[i,j+1,k] , s_z[i,j+1,k]])
 		else:
-			super_exchange_field_ijk = super_exchange_field_ijk + superexchange*np.array([s_x[i,0,k] , s_y[i,0,k] , s_z[i,0,k]])
+			super_exchange_field_ijk = super_exchange_field_ijk + superexchange[2]*np.array([s_x[i,0,k] , s_y[i,0,k] , s_z[i,0,k]])
 		if j > 0:
-			super_exchange_field_ijk = super_exchange_field_ijk + superexchange*np.array([s_x[i,j-1,k] , s_y[i,j-1,k] , s_z[i,j-1,k]])
+			super_exchange_field_ijk = super_exchange_field_ijk + superexchange[3]*np.array([s_x[i,j-1,k] , s_y[i,j-1,k] , s_z[i,j-1,k]])
 		else:
-			super_exchange_field_ijk = super_exchange_field_ijk + superexchange*np.array([s_x[i,edge_length-1,k] , s_y[i,edge_length-1,k] , s_z[i,edge_length-1,k]])
+			super_exchange_field_ijk = super_exchange_field_ijk + superexchange[3]*np.array([s_x[i,edge_length-1,k] , s_y[i,edge_length-1,k] , s_z[i,edge_length-1,k]])
 			
 		if k < edge_length-1:
-			super_exchange_field_ijk = super_exchange_field_ijk + superexchange*np.array([s_x[i,j,k+1] , s_y[i,j,k+1] , s_z[i,j,k+1]])
+			super_exchange_field_ijk = super_exchange_field_ijk + superexchange[4]*np.array([s_x[i,j,k+1] , s_y[i,j,k+1] , s_z[i,j,k+1]])
 		else:
-			super_exchange_field_ijk = super_exchange_field_ijk + superexchange*np.array([s_x[i,j,0] , s_y[i,j,0] , s_z[i,j,0]])
+			super_exchange_field_ijk = super_exchange_field_ijk + superexchange[4]*np.array([s_x[i,j,0] , s_y[i,j,0] , s_z[i,j,0]])
 		if k > 0:
-			super_exchange_field_ijk = super_exchange_field_ijk + superexchange*np.array([s_x[i,j,k-1] , s_y[i,j,k-1] , s_z[i,j,k-1]])
+			super_exchange_field_ijk = super_exchange_field_ijk + superexchange[5]*np.array([s_x[i,j,k-1] , s_y[i,j,k-1] , s_z[i,j,k-1]])
 		else:
-			super_exchange_field_ijk = super_exchange_field_ijk + superexchange*np.array([s_x[i,j,edge_length-1] , s_y[i,j,edge_length-1] , s_z[i,j,edge_length-1]])
+			super_exchange_field_ijk = super_exchange_field_ijk + superexchange[5]*np.array([s_x[i,j,edge_length-1] , s_y[i,j,edge_length-1] , s_z[i,j,edge_length-1]])
 		return super_exchange_field_ijk
 
 	def pair_corr_calc(self):
@@ -636,21 +729,15 @@ def createInvCDF(t):
 	
 print(time()-start_time)
 	
-my_lattice = SpinLattice(edge_length = 4, s_max = 2, single_ion_anisotropy = np.array([0,0,0]), superexchange = -1, magnetic_field = np.array([0,0,0]))
+my_lattice = SpinLattice(iron_doping_level=0.0, edge_length = 4, s_max = 2.5, single_ion_anisotropy_0 = np.array([0,0,0]), single_ion_anisotropy_1 = np.array([0,0,1]), superexchange = -1, magnetic_field = np.array([0,0,0]))
 my_lattice.init_rand_arrays()
-print(my_lattice.atom_type)
-print(fart)
+
 print(time()-start_time)
-print('start debugging')
-
-print('end debugging')
-
-
 
 my_lattice.random_ijk_list_generator()
 #my_lattice.possible_angles_list_generator(1000)
 #print(my_lattice.possible_angles_list)
-my_lattice.temperature_sweep(temperature_max=20.0, temperature_min=1.0, temperature_steps=20.0, equilibration_steps=50, number_of_angle_states=100)
+my_lattice.temperature_sweep(temperature_max=1001.0, temperature_min=1.0, temperature_steps=51.0, equilibration_steps=20, number_of_angle_states=100)
 
 print('\ntime=', time()-start_time)
 exit()
