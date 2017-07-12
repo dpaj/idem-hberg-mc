@@ -250,7 +250,7 @@ class SpinLattice(object):
 			for j in range(0,edge_length):
 				for k in range(0,edge_length):					
 					superexchange_array[i,j,k] = superexchange_array_calc(i,j,k)
-		print('superexchange_array',superexchange_array)
+		#print('superexchange_array',superexchange_array)
 					
 
 		return s_x, s_y, s_z, phi, theta, energy
@@ -260,7 +260,7 @@ class SpinLattice(object):
 		self.total_energy = np.sum(self.energy)
 		return total_energy
 
-	def temperature_sweep(self, temperature_max, temperature_min, temperature_steps, equilibration_steps, number_of_angle_states):
+	def temperature_sweep(self, temperature_max, temperature_min, temperature_steps, equilibration_steps, number_of_angle_states, magnetic_field):
 		s_max = self.s_max
 		theta = self.theta
 		phi = self.phi
@@ -303,6 +303,8 @@ class SpinLattice(object):
 					
 					
 					super_exchange_field_c = super_exchange_field_calc(i,j,k)
+					
+					super_exchange_field_c = super_exchange_field_c + magnetic_field
 					
 					theta_min_c, phi_min_c = spop.optimize.fmin(energy_calc, \
 					maxfun=5000, maxiter=5000, ftol=1e-6, xtol=1e-5, x0=(theta[i,j,k], phi[i,j,k]), args = (super_exchange_field_c,single_ion_anisotropy_ijk,s_max_ijk), disp=0)
@@ -379,13 +381,13 @@ class SpinLattice(object):
 		
 		
 		plt.plot(np.linspace(temperature_max, temperature_min, temperature_steps), temperature_E_list,'.-')
-		plt.title('edge_length='+str(self.edge_length)+', iron_doping_level='+str(self.iron_doping_level))
+		plt.title('edge_length='+str(self.edge_length)+', iron_doping_level='+str(self.iron_doping_level)+', magnetic_field='+str(magnetic_field))
 		plt.figure()
 		plt.plot(np.linspace(temperature_max, temperature_min, temperature_steps), temporary_pair_corr_list,'.-')
-		plt.title('edge_length='+str(self.edge_length)+', iron_doping_level='+str(self.iron_doping_level))
+		plt.title('edge_length='+str(self.edge_length)+', iron_doping_level='+str(self.iron_doping_level)+', magnetic_field='+str(magnetic_field))
 		plt.figure()
 		plt.plot(equilibration_energy_list)
-		plt.title('edge_length='+str(self.edge_length)+', iron_doping_level='+str(self.iron_doping_level))
+		plt.title('edge_length='+str(self.edge_length)+', iron_doping_level='+str(self.iron_doping_level)+', magnetic_field='+str(magnetic_field))
 		
 		plt.figure()
 		plt.plot(np.linspace(temperature_max, temperature_min, temperature_steps), a_x_type_order_parameter_list,label='a_x')
@@ -394,7 +396,7 @@ class SpinLattice(object):
 		plt.plot(np.linspace(temperature_max, temperature_min, temperature_steps), g_x_type_order_parameter_list,label='g_x')
 		plt.plot(np.linspace(temperature_max, temperature_min, temperature_steps), g_y_type_order_parameter_list,label='g_y')
 		plt.plot(np.linspace(temperature_max, temperature_min, temperature_steps), g_z_type_order_parameter_list,label='g_z')
-		plt.title('edge_length='+str(self.edge_length)+', iron_doping_level='+str(self.iron_doping_level))
+		plt.title('edge_length='+str(self.edge_length)+', iron_doping_level='+str(self.iron_doping_level)+', magnetic_field='+str(magnetic_field))
 		plt.legend()
 		print('\ntime=', time()-start_time)
 		plt.show()
@@ -527,9 +529,9 @@ class SpinLattice(object):
 		a_x = np.sum(np.multiply(a_type_mask, self.s_x))
 		a_y = np.sum(np.multiply(a_type_mask, self.s_y))
 		a_z = np.sum(np.multiply(a_type_mask, self.s_z))
-		print('\n')
-		print(self.s_x)
-		print(np.multiply(a_type_mask, self.s_x))
+		#print('\n')
+		#print(self.s_x)
+		#print(np.multiply(a_type_mask, self.s_x))
 		#print(self.s_x)
 		print(a_x, a_y, a_z)
 		return a_x, a_y, a_z
@@ -721,18 +723,17 @@ print(time()-start_time)
 #type 0 = Fe
 #type 1 = Mn
 	
-my_lattice = SpinLattice(iron_doping_level=0.3, edge_length = 10, s_max_0 = 2.5, s_max_1 = 2.0, \
+my_lattice = SpinLattice(iron_doping_level=0, edge_length = 22, s_max_0 = 2.5, s_max_1 = 2.0, \
 single_ion_anisotropy_0 = np.array([0,0,-0.01]), single_ion_anisotropy_1 = np.array([-4.0,0,0]), superexchange = -1, \
 magnetic_field = np.array([0,0,0]))
 my_lattice.init_rand_arrays()
 my_lattice.make_g_type_mask()
 
 print(time()-start_time)
-
 my_lattice.random_ijk_list_generator()
-#my_lattice.possible_angles_list_generator(1000)
-#print(my_lattice.possible_angles_list)
-my_lattice.temperature_sweep(temperature_max=801.0, temperature_min=1.0, temperature_steps=151, equilibration_steps=20, number_of_angle_states=100)
+
+my_lattice.temperature_sweep(temperature_max=201.0, temperature_min=1.0, temperature_steps=1001, \
+equilibration_steps=20, number_of_angle_states=100, magnetic_field=np.array([0.0,0.0,0.0]))
 
 print('\ntime=', time()-start_time)
 exit()
