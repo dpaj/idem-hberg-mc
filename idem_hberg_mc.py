@@ -37,6 +37,10 @@ class SpinLattice(object):
 		self.s_max_1 = s_max_1
 		self.g_type_mask = np.zeros((edge_length,edge_length,edge_length))
 		self.a_type_mask = np.zeros((edge_length,edge_length,edge_length))
+		self.mn_g_type_mask = np.zeros((edge_length,edge_length,edge_length))
+		self.mn_a_type_mask = np.zeros((edge_length,edge_length,edge_length))
+		self.fe_g_type_mask = np.zeros((edge_length,edge_length,edge_length))
+		self.fe_a_type_mask = np.zeros((edge_length,edge_length,edge_length))
 		self.superexchange_array = np.zeros((edge_length,edge_length,edge_length,6))
 		self.magnetic_field = magnetic_field
 		self.s_max = np.zeros((edge_length,edge_length,edge_length))
@@ -51,6 +55,7 @@ class SpinLattice(object):
 		self.possible_angles_list = []
 		self.temporary_pair_corr = 0
 		self.atom_type = np.zeros((edge_length,edge_length,edge_length), dtype = np.int8)
+		
 	def __str__(self):
 		return "SpinLattice"
 	def get_edge_length(self):
@@ -289,6 +294,20 @@ class SpinLattice(object):
 		g_y_type_order_parameter_list = []
 		g_z_type_order_parameter_list = []
 		
+		mn_a_x_type_order_parameter_list = []
+		mn_a_y_type_order_parameter_list = []
+		mn_a_z_type_order_parameter_list = []
+		mn_g_x_type_order_parameter_list = []
+		mn_g_y_type_order_parameter_list = []
+		mn_g_z_type_order_parameter_list = []
+		
+		fe_a_x_type_order_parameter_list = []
+		fe_a_y_type_order_parameter_list = []
+		fe_a_z_type_order_parameter_list = []
+		fe_g_x_type_order_parameter_list = []
+		fe_g_y_type_order_parameter_list = []
+		fe_g_z_type_order_parameter_list = []
+		
 		print("sweeping temperature...")
 		for temperature in np.linspace(temperature_max, temperature_min, temperature_steps):
 			print("\ntemperature=",temperature)
@@ -365,8 +384,8 @@ class SpinLattice(object):
 			temp_pair_corr_var = self.pair_corr_calc()
 			temporary_pair_corr_list.append(temp_pair_corr_var)
 			
-			temp_a_x, temp_a_y, temp_a_z = self.a_type_order_parameter_calc()
-			temp_g_x, temp_g_y, temp_g_z = self.g_type_order_parameter_calc()
+			temp_a_x, temp_a_y, temp_a_z, temp_mn_a_x, temp_mn_a_y, temp_mn_a_z, temp_fe_a_x, temp_fe_a_y, temp_fe_a_z = self.a_type_order_parameter_calc()
+			temp_g_x, temp_g_y, temp_g_z, temp_mn_g_x, temp_mn_g_y, temp_mn_g_z, temp_fe_g_x, temp_fe_g_y, temp_fe_g_z = self.g_type_order_parameter_calc()
 			a_x_type_order_parameter_list.append(temp_a_x)
 			a_y_type_order_parameter_list.append(temp_a_y)
 			a_z_type_order_parameter_list.append(temp_a_z)
@@ -374,31 +393,66 @@ class SpinLattice(object):
 			g_y_type_order_parameter_list.append(temp_g_y)
 			g_z_type_order_parameter_list.append(temp_g_z)
 			
+			mn_a_x_type_order_parameter_list.append(temp_mn_a_x)
+			mn_a_y_type_order_parameter_list.append(temp_mn_a_y)
+			mn_a_z_type_order_parameter_list.append(temp_mn_a_z)
+			mn_g_x_type_order_parameter_list.append(temp_mn_g_x)
+			mn_g_y_type_order_parameter_list.append(temp_mn_g_y)
+			mn_g_z_type_order_parameter_list.append(temp_mn_g_z)
+			
+			fe_a_x_type_order_parameter_list.append(temp_fe_a_x)
+			fe_a_y_type_order_parameter_list.append(temp_fe_a_y)
+			fe_a_z_type_order_parameter_list.append(temp_fe_a_z)
+			fe_g_x_type_order_parameter_list.append(temp_fe_g_x)
+			fe_g_y_type_order_parameter_list.append(temp_fe_g_y)
+			fe_g_z_type_order_parameter_list.append(temp_fe_g_z)
+			
 			print('\nfinal energy=', np.sum(energy), 'pair corr',temp_pair_corr_var)
 			
 			#plt.plot(E_list)
 			#plt.show()
 		
+		f, axarr = plt.subplots(2, 3, figsize=(16, 10), dpi=80, facecolor='w', edgecolor='k')
+		#print(dir(axarr))
 		
-		plt.plot(np.linspace(temperature_max, temperature_min, temperature_steps), temperature_E_list,'.-')
-		plt.title('edge_length='+str(self.edge_length)+', iron_doping_level='+str(self.iron_doping_level)+', magnetic_field='+str(magnetic_field))
-		plt.figure()
-		plt.plot(np.linspace(temperature_max, temperature_min, temperature_steps), temporary_pair_corr_list,'.-')
-		plt.title('edge_length='+str(self.edge_length)+', iron_doping_level='+str(self.iron_doping_level)+', magnetic_field='+str(magnetic_field))
-		plt.figure()
-		plt.plot(equilibration_energy_list)
-		plt.title('edge_length='+str(self.edge_length)+', iron_doping_level='+str(self.iron_doping_level)+', magnetic_field='+str(magnetic_field))
+		axarr[1, 0].plot(np.linspace(temperature_max, temperature_min, temperature_steps), temperature_E_list,'.-')
+		axarr[1, 0].set_title('energy')
+		#plt.figure()
+		axarr[1, 1].plot(np.linspace(temperature_max, temperature_min, temperature_steps), temporary_pair_corr_list,'.-')
+		axarr[1, 1].set_title('pair_corr')
+		#plt.figure()
+		axarr[1, 2].plot(equilibration_energy_list)
+		axarr[1, 2].set_title('equilibration_energy')
 		
-		plt.figure()
-		plt.plot(np.linspace(temperature_max, temperature_min, temperature_steps), a_x_type_order_parameter_list,label='a_x')
-		plt.plot(np.linspace(temperature_max, temperature_min, temperature_steps), a_y_type_order_parameter_list,label='a_y')
-		plt.plot(np.linspace(temperature_max, temperature_min, temperature_steps), a_z_type_order_parameter_list,label='a_z')
-		plt.plot(np.linspace(temperature_max, temperature_min, temperature_steps), g_x_type_order_parameter_list,label='g_x')
-		plt.plot(np.linspace(temperature_max, temperature_min, temperature_steps), g_y_type_order_parameter_list,label='g_y')
-		plt.plot(np.linspace(temperature_max, temperature_min, temperature_steps), g_z_type_order_parameter_list,label='g_z')
-		plt.title('edge_length='+str(self.edge_length)+', iron_doping_level='+str(self.iron_doping_level)+', magnetic_field='+str(magnetic_field))
-		plt.legend()
+		#plt.figure()
+		axarr[0, 0].plot(np.linspace(temperature_max, temperature_min, temperature_steps), a_x_type_order_parameter_list,label='a_x')
+		axarr[0, 0].plot(np.linspace(temperature_max, temperature_min, temperature_steps), a_y_type_order_parameter_list,label='a_y')
+		axarr[0, 0].plot(np.linspace(temperature_max, temperature_min, temperature_steps), a_z_type_order_parameter_list,label='a_z')
+		axarr[0, 0].plot(np.linspace(temperature_max, temperature_min, temperature_steps), g_x_type_order_parameter_list,label='g_x')
+		axarr[0, 0].plot(np.linspace(temperature_max, temperature_min, temperature_steps), g_y_type_order_parameter_list,label='g_y')
+		axarr[0, 0].plot(np.linspace(temperature_max, temperature_min, temperature_steps), g_z_type_order_parameter_list,label='g_z')
+		axarr[0, 0].set_title('order_parameter')
+		axarr[0, 0].legend()
+		
+		axarr[0, 1].plot(np.linspace(temperature_max, temperature_min, temperature_steps), mn_a_x_type_order_parameter_list,label='mn_a_x')
+		axarr[0, 1].plot(np.linspace(temperature_max, temperature_min, temperature_steps), mn_a_y_type_order_parameter_list,label='mn_a_y')
+		axarr[0, 1].plot(np.linspace(temperature_max, temperature_min, temperature_steps), mn_a_z_type_order_parameter_list,label='mn_a_z')
+		axarr[0, 1].plot(np.linspace(temperature_max, temperature_min, temperature_steps), mn_g_x_type_order_parameter_list,label='mn_g_x')
+		axarr[0, 1].plot(np.linspace(temperature_max, temperature_min, temperature_steps), mn_g_y_type_order_parameter_list,label='mn_g_y')
+		axarr[0, 1].plot(np.linspace(temperature_max, temperature_min, temperature_steps), mn_g_z_type_order_parameter_list,label='mn_g_z')
+		axarr[0, 1].set_title('order_parameter')
+		axarr[0, 1].legend()
+		
+		axarr[0, 2].plot(np.linspace(temperature_max, temperature_min, temperature_steps), fe_a_x_type_order_parameter_list,label='fe_a_x')
+		axarr[0, 2].plot(np.linspace(temperature_max, temperature_min, temperature_steps), fe_a_y_type_order_parameter_list,label='fe_a_y')
+		axarr[0, 2].plot(np.linspace(temperature_max, temperature_min, temperature_steps), fe_a_z_type_order_parameter_list,label='fe_a_z')
+		axarr[0, 2].plot(np.linspace(temperature_max, temperature_min, temperature_steps), fe_g_x_type_order_parameter_list,label='fe_g_x')
+		axarr[0, 2].plot(np.linspace(temperature_max, temperature_min, temperature_steps), fe_g_y_type_order_parameter_list,label='fe_g_y')
+		axarr[0, 2].plot(np.linspace(temperature_max, temperature_min, temperature_steps), fe_g_z_type_order_parameter_list,label='fe_g_z')
+		axarr[0, 2].set_title('order_parameter')
+		axarr[0, 2].legend()
 		print('\ntime=', time()-start_time)
+		plt.suptitle('edge_length='+str(self.edge_length)+', iron_doping_level='+str(self.iron_doping_level)+', magnetic_field='+str(magnetic_field))
 		plt.show()
 		
 	def random_ijk_list_generator(self):
@@ -519,48 +573,83 @@ class SpinLattice(object):
 			pair_corrzc_ijk = s_z[i,j,k]*s_z[i,j,0]
 
 		return pair_corrxa_ijk, pair_corrya_ijk, pair_corrza_ijk, pair_corrxb_ijk, pair_corryb_ijk, pair_corrzb_ijk, pair_corrxc_ijk, pair_corryc_ijk, pair_corrzc_ijk
-	
-	def a_type_order_parameter_calc(self):
-		edge_length = self.edge_length
-		a_type_mask = self.a_type_mask
-		# a_x = self.a_x
-		# a_y = self.a_y
-		# a_z = self.a_z
-		a_x = np.sum(np.multiply(a_type_mask, self.s_x))
-		a_y = np.sum(np.multiply(a_type_mask, self.s_y))
-		a_z = np.sum(np.multiply(a_type_mask, self.s_z))
-		#print('\n')
-		#print(self.s_x)
-		#print(np.multiply(a_type_mask, self.s_x))
-		#print(self.s_x)
-		print(a_x, a_y, a_z)
-		return a_x, a_y, a_z
+
+
 	def make_g_type_mask(self):
+		atom_type = self.atom_type
+
+		#mn_g_type_mask = self.mn_g_type_mask
+		#mn_a_type_mask = self.mn_a_type_mask
+		#fe_g_type_mask = self.fe_g_type_mask
+		#fe_a_type_mask = self.fe_a_type_mask
+		
 		g_type_mask = self.g_type_mask
 		a_type_mask = self.a_type_mask
 		edge_length = self.edge_length
 		a_type_mask[::,::2,::] = 1
+		a_type_mask[::,1::2,::] = -1
+
 		for i in range(edge_length):
 			for j in range(edge_length):
 				for k in range(edge_length):
 					if np.mod(i+j+k,2) == 0:
 						g_type_mask[i,j,k] = 1
-						#print(i,j,k)
-		return g_type_mask
+					else:
+						g_type_mask[i,j,k] = -1
+						
+		self.mn_g_type_mask = np.multiply(atom_type, g_type_mask)
+		self.mn_a_type_mask = np.multiply(atom_type, a_type_mask)
+		self.fe_g_type_mask = np.multiply(1-atom_type, g_type_mask)
+		self.fe_a_type_mask = np.multiply(1-atom_type, a_type_mask)
+		
+		#print('mn_g_type_mask', mn_g_type_mask)
+		print('self.mn_g_type_mask', self.mn_g_type_mask)
+		#exit()
+				
+	def a_type_order_parameter_calc(self):
+		edge_length = self.edge_length
+		a_type_mask = self.a_type_mask
+		mn_a_type_mask = self.mn_a_type_mask
+		fe_a_type_mask = self.fe_a_type_mask
+
+		a_x = np.sum(np.multiply(a_type_mask, self.s_x))
+		a_y = np.sum(np.multiply(a_type_mask, self.s_y))
+		a_z = np.sum(np.multiply(a_type_mask, self.s_z))
+		
+		mn_a_x = np.sum(np.multiply(mn_a_type_mask, self.s_x))
+		mn_a_y = np.sum(np.multiply(mn_a_type_mask, self.s_y))
+		mn_a_z = np.sum(np.multiply(mn_a_type_mask, self.s_z))
+		
+		fe_a_x = np.sum(np.multiply(fe_a_type_mask, self.s_x))
+		fe_a_y = np.sum(np.multiply(fe_a_type_mask, self.s_y))
+		fe_a_z = np.sum(np.multiply(fe_a_type_mask, self.s_z))
+		
+		print(mn_a_type_mask)
+		print(a_type_mask)
+		
+		print(a_x, a_y, a_z, mn_a_x, mn_a_y, mn_a_z)
+
+		return a_x, a_y, a_z, mn_a_x, mn_a_y, mn_a_z, fe_a_x, fe_a_y, fe_a_z
+
 	def g_type_order_parameter_calc(self):
 		edge_length = self.edge_length
 		g_type_mask = self.g_type_mask
-		# g_x = self.g_x
-		# g_y = self.g_y
-		# g_z = self.g_z
-		#print(np.multiply(g_type_mask, self.s_x))
-		#print(self.s_x)
-		
+		mn_g_type_mask = self.mn_g_type_mask
+		fe_g_type_mask = self.fe_g_type_mask
+
 		g_x = np.sum(np.multiply(g_type_mask, self.s_x))
 		g_y = np.sum(np.multiply(g_type_mask, self.s_y))
 		g_z = np.sum(np.multiply(g_type_mask, self.s_z))
-		#print(g_x,g_y,g_z)
-		return g_x, g_y, g_z
+		
+		mn_g_x = np.sum(np.multiply(mn_g_type_mask, self.s_x))
+		mn_g_y = np.sum(np.multiply(mn_g_type_mask, self.s_y))
+		mn_g_z = np.sum(np.multiply(mn_g_type_mask, self.s_z))
+		
+		fe_g_x = np.sum(np.multiply(fe_g_type_mask, self.s_x))
+		fe_g_y = np.sum(np.multiply(fe_g_type_mask, self.s_y))
+		fe_g_z = np.sum(np.multiply(fe_g_type_mask, self.s_z))
+
+		return g_x, g_y, g_z, mn_g_x, mn_g_y, mn_g_z, fe_g_x, fe_g_y, fe_g_z
 
 							
 class PairCorrelation(object):
@@ -723,7 +812,7 @@ print(time()-start_time)
 #type 0 = Fe
 #type 1 = Mn
 	
-my_lattice = SpinLattice(iron_doping_level=0, edge_length = 22, s_max_0 = 2.5, s_max_1 = 2.0, \
+my_lattice = SpinLattice(iron_doping_level=0.2, edge_length = 22, s_max_0 = 2.5, s_max_1 = 2.0, \
 single_ion_anisotropy_0 = np.array([0,0,-0.01]), single_ion_anisotropy_1 = np.array([-4.0,0,0]), superexchange = -1, \
 magnetic_field = np.array([0,0,0]))
 my_lattice.init_rand_arrays()
@@ -732,7 +821,7 @@ my_lattice.make_g_type_mask()
 print(time()-start_time)
 my_lattice.random_ijk_list_generator()
 
-my_lattice.temperature_sweep(temperature_max=201.0, temperature_min=1.0, temperature_steps=1001, \
+my_lattice.temperature_sweep(temperature_max=201.0, temperature_min=1.0, temperature_steps=21, \
 equilibration_steps=20, number_of_angle_states=100, magnetic_field=np.array([0.0,0.0,0.0]))
 
 print('\ntime=', time()-start_time)
