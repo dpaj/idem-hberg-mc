@@ -286,7 +286,8 @@ class SpinLattice(object):
 		
 		temperature_E_list = []
 		equilibration_energy_list = []
-		temporary_pair_corr_list = []
+		temporary_pair_corr_list_ac = []
+		temporary_pair_corr_list_b = []
 		a_x_type_order_parameter_list = []
 		a_y_type_order_parameter_list = []
 		a_z_type_order_parameter_list = []
@@ -381,8 +382,10 @@ class SpinLattice(object):
 			
 			temperature_E_list.append(np.sum(energy))
 			
-			temp_pair_corr_var = self.pair_corr_calc()
-			temporary_pair_corr_list.append(temp_pair_corr_var)
+			temp_pair_corr_var_ac, temp_pair_corr_var_b = self.pair_corr_calc()
+			
+			temporary_pair_corr_list_ac.append(temp_pair_corr_var_ac)
+			temporary_pair_corr_list_b.append(temp_pair_corr_var_b)
 			
 			temp_a_x, temp_a_y, temp_a_z, temp_mn_a_x, temp_mn_a_y, temp_mn_a_z, temp_fe_a_x, temp_fe_a_y, temp_fe_a_z = self.a_type_order_parameter_calc()
 			temp_g_x, temp_g_y, temp_g_z, temp_mn_g_x, temp_mn_g_y, temp_mn_g_z, temp_fe_g_x, temp_fe_g_y, temp_fe_g_z = self.g_type_order_parameter_calc()
@@ -407,22 +410,33 @@ class SpinLattice(object):
 			fe_g_y_type_order_parameter_list.append(temp_fe_g_y)
 			fe_g_z_type_order_parameter_list.append(temp_fe_g_z)
 			
-			print('\nfinal energy=', np.sum(energy), 'pair corr',temp_pair_corr_var)
+			print('\nfinal energy=', np.sum(energy), 'pair corr ac then b',temp_pair_corr_var_ac, temp_pair_corr_var_b)
 			
 			#plt.plot(E_list)
 			#plt.show()
 		
-		f, axarr = plt.subplots(2, 3, figsize=(16, 10), dpi=80, facecolor='w', edgecolor='k')
+		f, axarr = plt.subplots(3, 3, figsize=(16, 10), dpi=80, facecolor='w', edgecolor='k')
 		#print(dir(axarr))
 		
 		axarr[1, 0].plot(np.linspace(temperature_max, temperature_min, temperature_steps), temperature_E_list,'.-')
 		axarr[1, 0].set_title('energy')
 		#plt.figure()
-		axarr[1, 1].plot(np.linspace(temperature_max, temperature_min, temperature_steps), temporary_pair_corr_list,'.-')
+		axarr[1, 1].plot(np.linspace(temperature_max, temperature_min, temperature_steps), temporary_pair_corr_list_ac,'.-',label='ac')
+		axarr[1, 1].plot(np.linspace(temperature_max, temperature_min, temperature_steps), temporary_pair_corr_list_b,'.-',label='b')
 		axarr[1, 1].set_title('pair_corr')
+		axarr[1, 1].legend()
 		#plt.figure()
 		axarr[1, 2].plot(equilibration_energy_list)
 		axarr[1, 2].set_title('equilibration_energy')
+
+		
+		axarr[2, 0].plot(np.linspace(temperature_max, temperature_min, temperature_steps), np.gradient(temperature_E_list),'.-')
+		axarr[2, 0].set_title('energy derivative')	
+
+		axarr[2, 1].plot(np.linspace(temperature_max, temperature_min, temperature_steps), np.gradient(temporary_pair_corr_list_ac),'.-',label='ac')
+		axarr[2, 1].plot(np.linspace(temperature_max, temperature_min, temperature_steps), np.gradient(temporary_pair_corr_list_b),'.-',label='b')
+		axarr[2, 1].set_title('pair_corr derivatives')
+		axarr[2, 1].legend()
 		
 		#plt.figure()
 		axarr[0, 0].plot(np.linspace(temperature_max, temperature_min, temperature_steps), a_x_type_order_parameter_list,label='a_x')
@@ -517,6 +531,10 @@ class SpinLattice(object):
 		return super_exchange_field_ijk
 
 	def pair_corr_calc(self):
+		"""
+		x, y, z is the direction of the spin
+		a, b, c is the direction within the lattice
+		"""
 		edge_length = self.edge_length
 	
 		s_x = self.s_x
@@ -538,7 +556,7 @@ class SpinLattice(object):
 			for j in range(0,edge_length):
 				for k in range(0,edge_length):
 					pair_corrxa[i,j,k], pair_corrya[i,j,k], pair_corrza[i,j,k], pair_corrxb[i,j,k], pair_corryb[i,j,k], pair_corrzb[i,j,k], pair_corrxc[i,j,k], pair_corryc[i,j,k], pair_corrzc[i,j,k] = self.pair_corr(i,j,k)
-		return np.sum(pair_corrxa)+np.sum(pair_corrya)+np.sum(pair_corrza)  +  np.sum(pair_corrxb)+np.sum(pair_corryb)+np.sum(pair_corrzb)  +  np.sum(pair_corrxc)+np.sum(pair_corryc)+np.sum(pair_corrzc)
+		return np.sum(pair_corrxa)+np.sum(pair_corrya)+np.sum(pair_corrza)  +  np.sum(pair_corrxc)+np.sum(pair_corryc)+np.sum(pair_corrzc)  ,  np.sum(pair_corrxb)+np.sum(pair_corryb)+np.sum(pair_corrzb)
 			
 	def pair_corr(self,i,j,k):
 		edge_length = self.edge_length
@@ -603,7 +621,7 @@ class SpinLattice(object):
 		self.fe_a_type_mask = np.multiply(1-atom_type, a_type_mask)
 		
 		#print('mn_g_type_mask', mn_g_type_mask)
-		print('self.mn_g_type_mask', self.mn_g_type_mask)
+		#print('self.mn_g_type_mask', self.mn_g_type_mask)
 		#exit()
 				
 	def a_type_order_parameter_calc(self):
@@ -624,10 +642,10 @@ class SpinLattice(object):
 		fe_a_y = np.sum(np.multiply(fe_a_type_mask, self.s_y))
 		fe_a_z = np.sum(np.multiply(fe_a_type_mask, self.s_z))
 		
-		print(mn_a_type_mask)
-		print(a_type_mask)
+		#print(mn_a_type_mask)
+		#print(a_type_mask)
 		
-		print(a_x, a_y, a_z, mn_a_x, mn_a_y, mn_a_z)
+		#print(a_x, a_y, a_z, mn_a_x, mn_a_y, mn_a_z)
 
 		return a_x, a_y, a_z, mn_a_x, mn_a_y, mn_a_z, fe_a_x, fe_a_y, fe_a_z
 
@@ -651,7 +669,56 @@ class SpinLattice(object):
 
 		return g_x, g_y, g_z, mn_g_x, mn_g_y, mn_g_z, fe_g_x, fe_g_y, fe_g_z
 
-							
+	def bond_list_calc(self):
+		atom_type = self.atom_type
+		edge_length = self.edge_length
+		number_of_mn_mn = 0
+		number_of_fe_fe = 0
+		number_of_mn_fe = 0
+		number_of_fe_mn = 0
+		#print(atom_type)
+		for i in range(edge_length):
+			for j in range(edge_length):
+				for k in range(edge_length):
+					#print(atom_type[i,j,k])
+					if 1:#atom_type[i,j,k]:
+						if i < edge_length-1:
+							bond_identifier_1 = atom_type[i,j,k] + atom_type[i+1,j,k]
+						else:
+							bond_identifier_1 = atom_type[i,j,k] + atom_type[0,j,k]
+						if i > 0:
+							bond_identifier_2 = atom_type[i,j,k] + atom_type[i-1,j,k]
+						else:
+							bond_identifier_2 = atom_type[i,j,k] + atom_type[edge_length-1,j,k]
+						if j < edge_length-1:
+							bond_identifier_3 = atom_type[i,j,k] + atom_type[i,j+1,k]
+						else:
+							bond_identifier_3 = atom_type[i,j,k] + atom_type[i,0,k]
+						if j > 0:
+							bond_identifier_4 = atom_type[i,j,k] + atom_type[i,j-1,k]
+						else:
+							bond_identifier_4 = atom_type[i,j,k] + atom_type[i,edge_length-1,k]
+						if k < edge_length-1:
+							bond_identifier_5 = atom_type[i,j,k] + atom_type[i,j,k+1]
+						else:
+							bond_identifier_5 = atom_type[i,j,k] + atom_type[i,j,0]
+						if k > 0:
+							bond_identifier_6 = atom_type[i,j,k] + atom_type[i,j,k-1]
+						else:
+							bond_identifier_6 = atom_type[i,j,k] + atom_type[i,j,edge_length-1]
+					else:
+						print('Fe')
+					bond_identifier = [bond_identifier_1, bond_identifier_2, bond_identifier_3, bond_identifier_4, bond_identifier_5, bond_identifier_6]
+					#print(bond_identifier)
+					for bond_identifier_i in bond_identifier:
+						if bond_identifier_i == 2:
+							number_of_mn_mn = number_of_mn_mn + 1
+						elif bond_identifier_i == 0:
+							number_of_fe_fe = number_of_fe_fe + 1
+						else:
+							number_of_mn_fe = number_of_mn_fe + 1
+		number_of_mn_mn, number_of_fe_fe, number_of_mn_fe = number_of_mn_mn/2.0, number_of_fe_fe/2.0, number_of_mn_fe/2.0
+		print(number_of_mn_mn, number_of_fe_fe, number_of_mn_fe)
 class PairCorrelation(object):
 	""" this class is defined to house the pair correlations
 	pair_corrxa, pair_corrya, pair_corrza,
@@ -812,16 +879,18 @@ print(time()-start_time)
 #type 0 = Fe
 #type 1 = Mn
 	
-my_lattice = SpinLattice(iron_doping_level=0.2, edge_length = 22, s_max_0 = 2.5, s_max_1 = 2.0, \
+my_lattice = SpinLattice(iron_doping_level=0.4, edge_length = 22, s_max_0 = 2.5, s_max_1 = 2.0, \
 single_ion_anisotropy_0 = np.array([0,0,-0.01]), single_ion_anisotropy_1 = np.array([-4.0,0,0]), superexchange = -1, \
 magnetic_field = np.array([0,0,0]))
 my_lattice.init_rand_arrays()
 my_lattice.make_g_type_mask()
+my_lattice.bond_list_calc()
+
 
 print(time()-start_time)
 my_lattice.random_ijk_list_generator()
 
-my_lattice.temperature_sweep(temperature_max=201.0, temperature_min=1.0, temperature_steps=21, \
+my_lattice.temperature_sweep(temperature_max=401.0, temperature_min=1.0, temperature_steps=41, \
 equilibration_steps=20, number_of_angle_states=100, magnetic_field=np.array([0.0,0.0,0.0]))
 
 print('\ntime=', time()-start_time)
