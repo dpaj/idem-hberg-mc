@@ -467,6 +467,19 @@ class SpinLattice(object):
 		axarr[0, 2].legend()
 		print('\ntime=', time()-start_time)
 		plt.suptitle('edge_length='+str(self.edge_length)+', iron_doping_level='+str(self.iron_doping_level)+', magnetic_field='+str(magnetic_field))
+		
+		np.savetxt(str(int(start_time))+'_x='+str(self.iron_doping_level)+'_N='+str(self.edge_length)+".txt", \
+		np.c_[\
+		np.linspace(temperature_max, temperature_min, temperature_steps),\
+		a_x_type_order_parameter_list, a_y_type_order_parameter_list, a_z_type_order_parameter_list,\
+		g_x_type_order_parameter_list, g_y_type_order_parameter_list, g_z_type_order_parameter_list,\
+		mn_a_x_type_order_parameter_list, mn_a_y_type_order_parameter_list, mn_a_z_type_order_parameter_list,\
+		mn_g_x_type_order_parameter_list, mn_g_y_type_order_parameter_list, mn_g_z_type_order_parameter_list,\
+		fe_a_x_type_order_parameter_list, fe_a_y_type_order_parameter_list, fe_a_z_type_order_parameter_list,\
+		fe_g_x_type_order_parameter_list, fe_g_y_type_order_parameter_list, fe_g_z_type_order_parameter_list,\
+		], \
+		delimiter=', ', newline='\n')#, fmt='%.18e', header='', footer='', comments='# ')
+		
 		plt.show()
 		
 	def random_ijk_list_generator(self):
@@ -879,7 +892,7 @@ print(time()-start_time)
 #type 0 = Fe
 #type 1 = Mn
 	
-my_lattice = SpinLattice(iron_doping_level=0.4, edge_length = 22, s_max_0 = 2.5, s_max_1 = 2.0, \
+my_lattice = SpinLattice(iron_doping_level=0.6, edge_length = 22, s_max_0 = 2.5, s_max_1 = 2.0, \
 single_ion_anisotropy_0 = np.array([0,0,-0.01]), single_ion_anisotropy_1 = np.array([-4.0,0,0]), superexchange = -1, \
 magnetic_field = np.array([0,0,0]))
 my_lattice.init_rand_arrays()
