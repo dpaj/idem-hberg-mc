@@ -923,92 +923,11 @@ def nn_pair_corr(i,j,k):
 
 
 def non_min_energy_calc(x, non_min_e, i, j, k):
-    return (energy_calc(x,i,j,k)-non_min_e)**2
-
-def phonon_probability(E,T):
-    return phonon_prefactor(E,T)*unscaled_phonon_probability(E,T)
-
-def unscaled_phonon_probability(E,T):
-    if E < t_debye:
-        #return E**2/(np.exp(E/T)-1)
-        #return E**8/(np.exp(E/T)-1)
-        return np.exp(-(E-E0_single_spin)/T)
-    else:
-        return 0
-
-def phonon_prefactor(E,T):
-    ans, err = quad(unscaled_phonon_probability, 0, t_debye, args=(T))
-    if err/ans < 1e-3:
-        return 1/ans
-    else:
-        return "integration failed"
-
-def phonon_energy_spectral_density(E,T):
-    return E*phonon_probability(E,T)
-
-def phonon_cdf(E,T):
-    return quad(phonon_probability, 0, E, args=(T))
+	if 1:
+		exit()
+	return (energy_calc(x,i,j,k)-non_min_e)**2
 
 
-
-def createInvCDF(t):
-    
-    E = np.linspace(1e-6,t_debye,500)
-
-
-    #state_probability = np.zeros(np.shape(E))
-    #farfle = np.zeros(np.shape(E))
-    cdf = np.zeros(np.shape(E))
-    for i, e_ in enumerate(E):
-        
-        #state_probability[i] = phonon_probability(e_,t)
-        #farfle[i] = phonon_energy_spectral_density(e_,t)
-        cdf[i], err = phonon_cdf(e_,t) #quad(phonon_probability, 0, e_, args=(t))
-        print(t, i, cdf[i],err)
-
-
-
-    inv_cdf = interp1d(cdf, E)
-
-    #plt.plot(cdf,E)
-    #plt.figure()
-    #plt.plot(E,cdf)
-    #plt.figure()
-    #plt.plot(E, inv_cdf(E))
-
-
-
-    #r = np.random.uniform(0,t_debye, 1000)
-    #ys = infv_cdf(r)
-
-    #plt.plot(E,state_probability)
-    #plt.plot(E,cdf)
-
-    #plt.figure()
-
-    #plt.plot(E,farfle)
-    
-
-
-
-    if 0:
-        random_energy_list = []
-        for i in range(0,10000):
-            random_energy = inv_cdf(np.random.rand())
-            while (random_energy > t_debye):
-                random_energy = inv_cdf(np.random.rand())
-            
-            #unweighted_random_energy = np.random.rand()*t_debye
-            #random_energy = phonon_energy_spectral_density(unweighted_random_energy,t)
-            #print(phonon_energy_spectral_density(unweighted_random_energy,t))
-            #random_energy = np.random.rand()*t_debye
-            #print(random_energy)
-            random_energy_list.append(random_energy)
-
-        #random_energy_histogram, bin_edges = np.histogram(random_energy_list, bins=range(0,int(t_debye)))
-        plt.figure()
-        plt.hist(random_energy_list, bins = 50)
-    return inv_cdf
 
 	
 	
@@ -1016,8 +935,9 @@ print(time()-start_time)
 #type 0 = Fe
 #type 1 = Mn
 	
-my_lattice = SpinLattice(iron_doping_level=0.0, edge_length = 24, s_max_0 = 2.5, s_max_1 = 2.0, \
-single_ion_anisotropy_0 = np.array([0,0,-0.01]), single_ion_anisotropy_1 = np.array([-4.0,0,0]), superexchange = -1, \
+my_lattice = SpinLattice(\
+iron_doping_level=0.0, edge_length = 24, s_max_0 = 2.5, s_max_1 = 2.0, \
+single_ion_anisotropy_0 = np.array([0,0,-0.01]), single_ion_anisotropy_1 = np.array([-0.0,0,-4.0]), superexchange = -1, \
 magnetic_field = np.array([0,0,0]))
 my_lattice.init_rand_arrays()
 my_lattice.make_g_type_mask()
@@ -1028,124 +948,7 @@ print(time()-start_time)
 my_lattice.random_ijk_list_generator()
 
 my_lattice.temperature_sweep(temperature_max=201.0, temperature_min=1.0, temperature_steps=21, \
-equilibration_steps=20, number_of_angle_states=100, magnetic_field=np.array([0.0,0.0,0.0]))
+equilibration_steps=30, number_of_angle_states=100, magnetic_field=np.array([0.0,0.0,0.0]))
 
 print('\ntime=', time()-start_time)
 exit()
-
-
-	
-t_list = np.linspace(10,2,20)
-Emin_list = []
-
-pcxa_list = []
-pcya_list = []
-pcza_list = []
-
-pcxb_list = []
-pcyb_list = []
-pczb_list = []
-
-pcxc_list = []
-pcyc_list = []
-pczc_list = []
-
-for t in t_list:
-    inv_cdf = createInvCDF(t)
-
-    energy_list = []
-    energy_list.append(np.sum(energy))
-    #now do the energy minimization procedure
-    for shmoo in range(0,10):
-        for i in range(0,edge_length):
-            for j in range(0,edge_length):
-                for k in range(0,edge_length):
-                    phonon_energy = inv_cdf(np.random.rand())
-                    #print(local_field((theta[i,j,k],phi[i,j,k]),i,j,k))
-                    newtheta, newphi = spop.optimize.fmin(energy_calc, maxfun=5000, maxiter=5000, ftol=1e-6, xtol=1e-5, x0=(theta[i,j,k],phi[i,j,k]), args = (i,j,k), disp=0)
-                    
-                    
-                    print(t, i,j,k,newtheta, newphi, energy_calc((newtheta, newphi),i,j,k), phonon_energy)
-                    phi[i,j,k] = newphi
-                    theta[i,j,k] = newtheta
-                    s_x[i,j,k] = s_max*np.sin(theta[i,j,k])*np.cos(phi[i,j,k])
-                    s_y[i,j,k] = s_max*np.sin(theta[i,j,k])*np.sin(phi[i,j,k])
-                    s_z[i,j,k] = s_max*np.cos(theta[i,j,k])
-                    energy[i,j,k] = energy_calc((theta[i,j,k],phi[i,j,k]),i,j,k)
-
-
-                    non_min_e = energy[i,j,k]+phonon_energy
-                    if non_min_e > 6*2*superexchange*s_max*s_max:
-                        non_min_e = 6*2*superexchange*s_max*s_max
-                    newtheta, newphi = spop.optimize.fmin(non_min_energy_calc, maxfun=5000, maxiter=5000, ftol=1e-6, xtol=1e-5, x0=(np.arccos(1.0-2.0*np.random.rand()),np.random.rand()*np.pi), args = (non_min_e,i,j,k), disp=0)
-                    phi[i,j,k] = newphi
-                    theta[i,j,k] = newtheta
-                    s_x[i,j,k] = s_max*np.sin(theta[i,j,k])*np.cos(phi[i,j,k])
-                    s_y[i,j,k] = s_max*np.sin(theta[i,j,k])*np.sin(phi[i,j,k])
-                    s_z[i,j,k] = s_max*np.cos(theta[i,j,k])
-                    energy[i,j,k] = energy_calc((theta[i,j,k],phi[i,j,k]),i,j,k)                
-                    #newtheta, newphi = spop.optimize.fmin(non_min_energy_calc, maxfun=5000, maxiter=5000, ftol=1e-6, xtol=1e-5, x0=(theta[i,j,k],phi[i,j,k]), args = (phonon_energy,i,j,k), disp=0)
-                    
-        energy_list.append(np.sum(energy))
-
-    Emin_list.append(np.min(energy_list))
-    #print(energy_list)
-    #print(-edge_length**3*2*superexchange*s_max*s_max*3, -edge_length**3*2*superexchange*s_max*s_max*3-edge_length**3*2*single_ion_anisotropy*s_max*s_max)
-    #print(phonon_energy)
-    if 1: #should each 3d map of the spins be drawn?
-        fig = plt.figure()
-        ax = fig.add_subplot(111, projection='3d')
-
-        #plot solution
-        for i in range(0,edge_length):
-            for j in range(0,edge_length):
-                for k in range(0,edge_length):
-                    ax.scatter(i, j, k, color = 'black', marker='o')
-                    ax.plot([i,i+s_x[i,j,k]*moment_visualization_scale_factor], [j,j+s_y[i,j,k]*moment_visualization_scale_factor], [k,k+s_z[i,j,k]*moment_visualization_scale_factor], color = 'black')
-
-    #calculate the pair correlations
-    for i in range(0,edge_length):
-        for j in range(0,edge_length):
-            for k in range(0,edge_length):
-                nn_pair_corrxa[i,j,k], nn_pair_corrya[i,j,k], nn_pair_corrza[i,j,k], nn_pair_corrxb[i,j,k], nn_pair_corryb[i,j,k], nn_pair_corrzb[i,j,k], nn_pair_corrxc[i,j,k], nn_pair_corryc[i,j,k], nn_pair_corrzc[i,j,k] = nn_pair_corr(i,j,k)
-
-
-    print("np.sum(nn_pair_corrxa), np.sum(nn_pair_corrya), np.sum(nn_pair_corrza)")
-    print(np.sum(nn_pair_corrxa), np.sum(nn_pair_corrya), np.sum(nn_pair_corrza))
-
-    print("np.sum(nn_pair_corrxb), np.sum(nn_pair_corryb), np.sum(nn_pair_corrzb)")
-    print(np.sum(nn_pair_corrxb), np.sum(nn_pair_corryb), np.sum(nn_pair_corrzb))
-
-    print("np.sum(nn_pair_corrxc), np.sum(nn_pair_corryc), np.sum(nn_pair_corrzc)")
-    print(np.sum(nn_pair_corrxc), np.sum(nn_pair_corryc), np.sum(nn_pair_corrzc))
-
-    pcxa_list.append(np.sum(nn_pair_corrxa))
-    pcya_list.append(np.sum(nn_pair_corrya))
-    pcza_list.append(np.sum(nn_pair_corrza))
-
-    pcxb_list.append(np.sum(nn_pair_corrxb))
-    pcyb_list.append(np.sum(nn_pair_corryb))
-    pczb_list.append(np.sum(nn_pair_corrzb))
-
-    pcxc_list.append(np.sum(nn_pair_corrxc))
-    pcyc_list.append(np.sum(nn_pair_corryc))
-    pczc_list.append(np.sum(nn_pair_corrzc))
-
-end_time = time()
-
-print("time in minutes =", -(start_time-end_time)/60.0)
-
-plt.plot(t_list, pcxa_list, label = 'xa')
-plt.plot(t_list, pcxb_list, label = 'xb')
-plt.plot(t_list, pcxc_list, label = 'xc')
-
-plt.plot(t_list, pcya_list, label = 'ya')
-plt.plot(t_list, pcyb_list, label = 'yb')
-plt.plot(t_list, pcyc_list, label = 'yc')
-
-plt.plot(t_list, pcza_list, label = 'za')
-plt.plot(t_list, pczb_list, label = 'zb')
-plt.plot(t_list, pczc_list, label = 'zc')
-
-plt.legend()
-plt.show()
