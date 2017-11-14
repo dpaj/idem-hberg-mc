@@ -25,6 +25,30 @@ class SpinLattice(object):
 	phi = this is an edge_length**3 array of the azimuthal angles, each of which has a range of [0,2*pi]
 	theta = this is an edge_length**3 array of the elevation angle, each of which has a range of [0,pi]
 	energy = this is an edge_length**3 array of the site energies
+	
+	iron_doping_level = varies from 0 to 1, 0 is no iron, is set for a given SpinLattice object
+	edge_length = the simulation is the edge of a cube with periodic boundary conditions, and this is just the number of sites per side
+	single_ion_anisotropy = this is the 6-d array, where the first three dimensions correspond to indexation of sites within the simulated lattice, and the final three dimensions house the direction and strength of the single ion anisotropy for a given site
+	
+	single_ion_anisotropy_0 = the is the 3-d array that holds the strength and direction of the iron single ion anisotropy
+	single_ion_anisotropy_1 = the 3-d array that holds the strength and direction of the manganese single ion anisotropy
+	
+	s_max_0 = the double that holds the maximum spin value of the iron spin
+	s_max_1 = the double that holds the maximum spin value of the manganese spin
+	
+	g_type_mask = the edge_length**3 array that is masked to be g-type for all sites
+	a_type_mask = the edge_length**3 array that is masked to be a-type for all sites
+	mn_g_type_mask = the edge_length**3 array that is masked to be g-type for ONLY the mn sites
+	mn_a_type_mask = the edge_length**3 array that is masked to be a-type for ONLY the mn sites
+	fe_g_type_mask = the edge_length**3 array that is masked to be g-type for ONLY the fe sites
+	fe_a_type_mask = the edge_length**3 array that is masked to be a-type for ONLY the fe sites	
+	
+	superexchange_array = the 9-d array that houses the superexchange interactions for the solid solution, such that the first 3-d are indexation of the sites within the simulated lattice, and the final six dimensions are the nearest neighbor interactions
+	
+	total_energy = ???
+	
+	random_ijk_list = when updating, the order is random but the same every update cycle, and this list stores a series of indices
+	possible_angles_list = 
 
 	"""
 	def __init__(self, edge_length=None, iron_doping_level=None, s_max_0=None, s_max_1=None, single_ion_anisotropy_0 = None, single_ion_anisotropy_1 = None, single_ion_anisotropy=None, superexchange=None, magnetic_field=None, s_x=None, s_y=None, s_z=None, phi=None, theta=None, energy=None, total_energy=None, random_ijk_array=None, possible_angles_list=None,temporary_nn_pair_corr=None, atom_type=None):
@@ -223,7 +247,7 @@ class SpinLattice(object):
 			super_exchange_ijk[5] = superexchange_z(atom_type_ijk, atom_type[i,j,edge_length-1])
 		return super_exchange_ijk
 		
-	def init_rand_arrays(self):
+	def init_arrays(self):
 		iron_doping_level = self.iron_doping_level
 		edge_length, s_x, s_y, s_z, s_max, phi, theta, energy, atom_type = self.edge_length, self.s_x, self.s_y, self.s_z, self.s_max, self.phi, self.theta, self.energy, self.atom_type
 		single_ion_anisotropy, single_ion_anisotropy_0, single_ion_anisotropy_1 = self.single_ion_anisotropy, self.single_ion_anisotropy_0, self.single_ion_anisotropy_1
@@ -313,8 +337,11 @@ class SpinLattice(object):
 		fe_g_y_type_order_parameter_list = []
 		fe_g_z_type_order_parameter_list = []
 		
+		temperature_sweep_array = np.linspace(temperature_max, temperature_min, temperature_steps)
+		E_temperature_list = np.zeros(temperature_steps, equilibration_steps)
+		
 		print("sweeping temperature...")
-		for temperature in np.linspace(temperature_max, temperature_min, temperature_steps):
+		for temperature in temperature_sweep_array:
 			print("\ntemperature=",temperature)
 			for equilibration_index in np.linspace(0,equilibration_steps-1,equilibration_steps):
 				print("  i=", equilibration_index, end=':')
@@ -383,6 +410,7 @@ class SpinLattice(object):
 					energy[i,j,k] = energy_calc((theta[i,j,k],phi[i,j,k]),super_exchange_field_c,single_ion_anisotropy_ijk,s_max_ijk)
 					
 				equilibration_energy_list.append(np.sum(energy))
+				E_temperature_list[
 			
 			temperature_E_list.append(np.sum(energy))
 			
@@ -730,7 +758,7 @@ class SpinLattice(object):
 
 		
 
-	def make_g_type_mask(self):
+	def make_op_masks(self):
 		atom_type = self.atom_type
 
 		#mn_g_type_mask = self.mn_g_type_mask
@@ -936,11 +964,11 @@ print(time()-start_time)
 #type 1 = Mn
 	
 my_lattice = SpinLattice(\
-iron_doping_level=0.0, edge_length = 24, s_max_0 = 2.5, s_max_1 = 2.0, \
-single_ion_anisotropy_0 = np.array([0,0,-0.01]), single_ion_anisotropy_1 = np.array([-0.0,0,-4.0]), superexchange = -1, \
+iron_doping_level=0.0, edge_length = 8, s_max_0 = 2.5, s_max_1 = 2.0, \
+single_ion_anisotropy_0 = np.array([0,0,-0.01]), single_ion_anisotropy_1 = np.array([-4.0,0,0.0]), superexchange = -1, \
 magnetic_field = np.array([0,0,0]))
-my_lattice.init_rand_arrays()
-my_lattice.make_g_type_mask()
+my_lattice.init_arrays()
+my_lattice.make_op_masks()
 my_lattice.bond_list_calc()
 
 
