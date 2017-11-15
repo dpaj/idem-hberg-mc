@@ -48,10 +48,10 @@ class SpinLattice(object):
 	total_energy = ???
 	
 	random_ijk_list = when updating, the order is random but the same every update cycle, and this list stores a series of indices
-	possible_angles_list = 
+
 
 	"""
-	def __init__(self, edge_length=None, iron_doping_level=None, s_max_0=None, s_max_1=None, single_ion_anisotropy_0 = None, single_ion_anisotropy_1 = None, single_ion_anisotropy=None, superexchange=None, magnetic_field=None, s_x=None, s_y=None, s_z=None, phi=None, theta=None, energy=None, total_energy=None, random_ijk_array=None, possible_angles_list=None,temporary_nn_pair_corr=None, atom_type=None):
+	def __init__(self, edge_length=None, iron_doping_level=None, s_max_0=None, s_max_1=None, single_ion_anisotropy_0 = None, single_ion_anisotropy_1 = None, single_ion_anisotropy=None, superexchange=None, magnetic_field=None, s_x=None, s_y=None, s_z=None, phi=None, theta=None, energy=None, total_energy=None, random_ijk_array=None,temporary_nn_pair_corr=None, atom_type=None):
 		self.iron_doping_level = iron_doping_level
 		self.edge_length = edge_length
 		self.single_ion_anisotropy = np.zeros((edge_length,edge_length,edge_length,3))
@@ -76,7 +76,6 @@ class SpinLattice(object):
 		self.energy = np.zeros((edge_length,edge_length,edge_length))
 		self.total_energy = 0
 		self.random_ijk_list = []
-		self.possible_angles_list = []
 		self.temporary_nn_pair_corr = 0
 		self.atom_type = np.zeros((edge_length,edge_length,edge_length), dtype = np.int8)
 		
@@ -290,6 +289,7 @@ class SpinLattice(object):
 		return total_energy
 
 	def temperature_sweep(self, temperature_max, temperature_min, temperature_steps, equilibration_steps, number_of_angle_states, magnetic_field):
+		#get the relevant attributes from the SpinLattice to have instances in the scope of temperature_sweep
 		s_max = self.s_max
 		theta = self.theta
 		phi = self.phi
@@ -304,10 +304,11 @@ class SpinLattice(object):
 		s_z = self.s_z
 		single_ion_anisotropy = self.single_ion_anisotropy
 		random_ijk_list = self.random_ijk_list
-		possible_angles_list = self.possible_angles_list
 		
-		spaced_theta_values = np.arccos(1-2*np.linspace(0,1,101))
+		#when looking at the 0 to pi theta values that will be thermalized after choosing a random phi value from knowing the minimum energy
+		spaced_theta_values = np.arccos(1-2*np.linspace(0,1,number_of_angle_states))
 		
+		#initialize all of the lists
 		temperature_E_list = []
 		equilibration_energy_list = []
 		temporary_nn_pair_corr_list_ac = []
@@ -338,70 +339,65 @@ class SpinLattice(object):
 		fe_g_z_type_order_parameter_list = []
 		
 		temperature_sweep_array = np.linspace(temperature_max, temperature_min, temperature_steps)
-		E_temperature_list = np.zeros(temperature_steps, equilibration_steps)
+		E_temperature_array = np.zeros((temperature_steps, equilibration_steps))
+		
+		nn_pair_corr_ac_temperature_array = np.zeros((temperature_steps, equilibration_steps))
+		nn_pair_corr_b_temperature_array = np.zeros((temperature_steps, equilibration_steps))
+		
+		A_temperature_array = np.zeros((3,3,temperature_steps, equilibration_steps)) #the first "3" is for total, Fe, or Mn, and the second "3" is for the x,y,z components
+		G_temperature_array = np.zeros((3,3,temperature_steps, equilibration_steps)) #the first "3" is for total, Fe, or Mn, and the second "3" is for the x,y,z components
 		
 		print("sweeping temperature...")
-		for temperature in temperature_sweep_array:
+		for temperature_index, temperature in enumerate(temperature_sweep_array):
 			print("\ntemperature=",temperature)
-			for equilibration_index in np.linspace(0,equilibration_steps-1,equilibration_steps):
+			for equilibration_index in range(equilibration_steps):
 				print("  i=", equilibration_index, end=':')
 				for ijk in random_ijk_list:
+					#i want to not call the ijk every time when i'm getting spin positions and such
 					i,j,k = ijk[0], ijk[1], ijk[2]
-					
 					s_max_ijk = s_max[i,j,k]
-					
 					single_ion_anisotropy_ijk = single_ion_anisotropy[i,j,k]
 					
-					
+					#calculate the super_exchange_field for the site in the coordinate system of the lattice
 					super_exchange_field_c = super_exchange_field_calc(i,j,k)
 					
+					#put in the lab magnetic field
 					super_exchange_field_c = super_exchange_field_c + magnetic_field
 					
+					#calculate the minimum positions of theta and phi for the site in the lattice coordinate system
 					theta_min_c, phi_min_c = spop.optimize.fmin(energy_calc, \
 					maxfun=5000, maxiter=5000, ftol=1e-6, xtol=1e-5, x0=(theta[i,j,k], phi[i,j,k]), args = (super_exchange_field_c,single_ion_anisotropy_ijk,s_max_ijk), disp=0)
-					s_x_min_c = s_max*np.sin(theta_min_c)*np.cos(phi_min_c)
-					s_y_min_c = s_max*np.sin(theta_min_c)*np.sin(phi_min_c)
-					s_z_min_c = s_max*np.cos(theta_min_c)
-					energy_min_c = energy_calc((theta_min_c, phi_min_c),super_exchange_field_c, single_ion_anisotropy_ijk, s_max_ijk)
 					
-					
+					#move to the frame in which the minimum energy position is along the z-axis 
 					super_exchange_field_r = np.dot(my_rot_mat(theta_min_c, phi_min_c), super_exchange_field_c)
 					single_ion_anisotropy_ijk_r = np.dot(my_rot_mat(theta_min_c, phi_min_c), single_ion_anisotropy_ijk)
+					phi_thermal_r = random.random()*2*np.pi #phi is completely random in the rotated frame
 					
-					
-					#i think i don't need to calculate these intermediates, if i define my rotation matrix properly, they are both zero!
-					theta_min_r, phi_min_r = spop.optimize.fmin(energy_calc, \
-					maxfun=5000, maxiter=5000, ftol=1e-6, xtol=1e-5, x0=(theta[i,j,k], phi[i,j,k]), args = (super_exchange_field_r,single_ion_anisotropy_ijk_r,s_max_ijk), disp=0)
-					
-					phi_thermal_r = random.random()*2*np.pi
-					
+					#make a list of energies to choose from when applying the Boltzmann statistics
 					E_r_list = energy_calc((spaced_theta_values, phi_thermal_r),super_exchange_field_r,single_ion_anisotropy_ijk_r,s_max_ijk)
 					
+					#from the list of energies, apply Boltzmann statistics to get the probability of each angle, and normalize
 					P_r_list = np.exp(-E_r_list/temperature)
 					P_r_list = P_r_list/np.sum(P_r_list)
-									
+					
+					#make a weighted probability choice of the theta_r value									
 					theta_thermal_r = np.random.choice(spaced_theta_values, p=P_r_list)
 					
+					#change from spherical to cartesian coordinates in prepration for rotation back to the lattice frame
 					s_x_thermal_r = s_max_ijk*np.sin(theta_thermal_r)*np.cos(phi_thermal_r)
 					s_y_thermal_r = s_max_ijk*np.sin(theta_thermal_r)*np.sin(phi_thermal_r)
-					s_z_thermal_r = s_max_ijk*np.cos(theta_thermal_r)					
-					energy_thermal_r = energy_calc((theta_thermal_r, phi_thermal_r),super_exchange_field_r,single_ion_anisotropy_ijk_r,s_max_ijk)
-					
-
+					s_z_thermal_r = s_max_ijk*np.cos(theta_thermal_r)									
 					s_thermal_r = np.array([s_x_thermal_r, s_y_thermal_r, s_z_thermal_r])
 
+					#take the thermalized value for the spin orientation and rotate into the lattice frame
 					s_thermal_c = np.dot(my_rot_mat(-theta_min_c, -phi_min_c), s_thermal_r)
-					
 					s_x_thermal_c, s_y_thermal_c, s_z_thermal_c = s_thermal_c
+					
 					theta_thermal_c = np.arccos(s_z_thermal_c / np.sqrt(s_x_thermal_c**2 + s_y_thermal_c**2 +s_z_thermal_c**2))
 					phi_thermal_c = -np.arctan2(s_y_thermal_c, s_x_thermal_c)
 					energy_thermal_c = energy_calc((theta_thermal_c, phi_thermal_c),super_exchange_field_c,single_ion_anisotropy_ijk,s_max_ijk)
 					
-					#print("theta", theta_thermal_r, theta_thermal_c, theta_min_c)
-					#print("phi", phi_thermal_r, phi_thermal_c, phi_min_c)
-					
-					#print("r vs c for e", energy_thermal_r, energy_thermal_c)
-					
+					#update the SpinLattice parameters for the given site with the thermalized values for that equilibration step
 					phi[i,j,k] = phi_thermal_c
 					theta[i,j,k] = theta_thermal_c
 					s_x[i,j,k] = s_max_ijk*np.sin(theta[i,j,k])*np.cos(phi[i,j,k])
@@ -409,14 +405,29 @@ class SpinLattice(object):
 					s_z[i,j,k] = s_max_ijk*np.cos(theta[i,j,k])
 					energy[i,j,k] = energy_calc((theta[i,j,k],phi[i,j,k]),super_exchange_field_c,single_ion_anisotropy_ijk,s_max_ijk)
 					
-				equilibration_energy_list.append(np.sum(energy))
-				E_temperature_list[
+				equilibration_energy_list.append(np.sum(energy)) #this is the energy of the lattice for a given step in the equilibration
+				
+				#store the energies for each equilibration step, indexed by temperature
+				E_temperature_array[temperature_index, equilibration_index] = np.sum(energy) #((temperature_steps, equilibration_steps))
+				
+				#store the AF order parameters for each equilibration step, indexed by temperature
+				temp_a_x, temp_a_y, temp_a_z, temp_mn_a_x, temp_mn_a_y, temp_mn_a_z, temp_fe_a_x, temp_fe_a_y, temp_fe_a_z = self.a_type_order_parameter_calc()
+				temp_g_x, temp_g_y, temp_g_z, temp_mn_g_x, temp_mn_g_y, temp_mn_g_z, temp_fe_g_x, temp_fe_g_y, temp_fe_g_z = self.g_type_order_parameter_calc()
+				A_temperature_array[0,0,temperature_index, equilibration_index], A_temperature_array[0,1,temperature_index, equilibration_index], A_temperature_array[0,2,temperature_index, equilibration_index], A_temperature_array[1,0,temperature_index, equilibration_index], A_temperature_array[1,1,temperature_index, equilibration_index], A_temperature_array[1,2,temperature_index, equilibration_index], A_temperature_array[2,0,temperature_index, equilibration_index], A_temperature_array[2,1,temperature_index, equilibration_index], A_temperature_array[2,2,temperature_index, equilibration_index] = temp_a_x, temp_a_y, temp_a_z, temp_mn_a_x, temp_mn_a_y, temp_mn_a_z, temp_fe_a_x, temp_fe_a_y, temp_fe_a_z
+				G_temperature_array[0,0,temperature_index, equilibration_index], G_temperature_array[0,1,temperature_index, equilibration_index], G_temperature_array[0,2,temperature_index, equilibration_index], G_temperature_array[1,0,temperature_index, equilibration_index], G_temperature_array[1,1,temperature_index, equilibration_index], G_temperature_array[1,2,temperature_index, equilibration_index], G_temperature_array[2,0,temperature_index, equilibration_index], G_temperature_array[2,1,temperature_index, equilibration_index], G_temperature_array[2,2,temperature_index, equilibration_index] = temp_g_x, temp_g_y, temp_g_z, temp_mn_g_x, temp_mn_g_y, temp_mn_g_z, temp_fe_g_x, temp_fe_g_y, temp_fe_g_z
+				
+				#store the nearest neighbor correlations for each equilibration step, indexed by temperature
+				temp_nn_pair_corr_var_ac, temp_nn_pair_corr_var_b = self.nn_pair_corr_calc()
+				nn_pair_corr_ac_temperature_array[temperature_index, equilibration_index] = temp_nn_pair_corr_var_ac
+				nn_pair_corr_b_temperature_array[temperature_index, equilibration_index] = temp_nn_pair_corr_var_b
+
 			
 			temperature_E_list.append(np.sum(energy))
 			
 			temp_nn_pair_corr_var_ac, temp_nn_pair_corr_var_b = self.nn_pair_corr_calc()
 			
 			#working on this part start
+			#to get the correlatoin length?
 			temp_pair_corr_var_ac, temp_pair_corr_var_b = self.pair_corr_calc()
 			temp_pair_corr_var_ac = np.delete(temp_pair_corr_var_ac, 0)
 			temp_pair_corr_var_b = np.delete(temp_pair_corr_var_b, 0)
@@ -460,11 +471,11 @@ class SpinLattice(object):
 		f, axarr = plt.subplots(3, 3, figsize=(16, 10), dpi=80, facecolor='w', edgecolor='k')
 		#print(dir(axarr))
 		
-		axarr[1, 0].plot(np.linspace(temperature_max, temperature_min, temperature_steps), temperature_E_list,'.-')
+		axarr[1, 0].plot(temperature_sweep_array, temperature_E_list,'.-')
 		axarr[1, 0].set_title('energy')
 		#plt.figure()
-		axarr[1, 1].plot(np.linspace(temperature_max, temperature_min, temperature_steps), temporary_nn_pair_corr_list_ac,'.-',label='ac')
-		axarr[1, 1].plot(np.linspace(temperature_max, temperature_min, temperature_steps), temporary_nn_pair_corr_list_b,'.-',label='b')
+		axarr[1, 1].plot(temperature_sweep_array, temporary_nn_pair_corr_list_ac,'.-',label='ac')
+		axarr[1, 1].plot(temperature_sweep_array, temporary_nn_pair_corr_list_b,'.-',label='b')
 		axarr[1, 1].set_title('nn_pair_corr')
 		axarr[1, 1].legend()
 		#plt.figure()
@@ -472,39 +483,39 @@ class SpinLattice(object):
 		axarr[1, 2].set_title('equilibration_energy')
 
 		
-		axarr[2, 0].plot(np.linspace(temperature_max, temperature_min, temperature_steps), np.gradient(temperature_E_list),'.-')
+		axarr[2, 0].plot(temperature_sweep_array, np.gradient(temperature_E_list),'.-')
 		axarr[2, 0].set_title('energy derivative')	
 
-		axarr[2, 1].plot(np.linspace(temperature_max, temperature_min, temperature_steps), np.gradient(temporary_nn_pair_corr_list_ac),'.-',label='ac')
-		axarr[2, 1].plot(np.linspace(temperature_max, temperature_min, temperature_steps), np.gradient(temporary_nn_pair_corr_list_b),'.-',label='b')
+		axarr[2, 1].plot(temperature_sweep_array, np.gradient(temporary_nn_pair_corr_list_ac),'.-',label='ac')
+		axarr[2, 1].plot(temperature_sweep_array, np.gradient(temporary_nn_pair_corr_list_b),'.-',label='b')
 		axarr[2, 1].set_title('nn_pair_corr derivatives')
 		axarr[2, 1].legend()
 		
 		#plt.figure()
-		axarr[0, 0].plot(np.linspace(temperature_max, temperature_min, temperature_steps), a_x_type_order_parameter_list,label='a_x')
-		axarr[0, 0].plot(np.linspace(temperature_max, temperature_min, temperature_steps), a_y_type_order_parameter_list,label='a_y')
-		axarr[0, 0].plot(np.linspace(temperature_max, temperature_min, temperature_steps), a_z_type_order_parameter_list,label='a_z')
-		axarr[0, 0].plot(np.linspace(temperature_max, temperature_min, temperature_steps), g_x_type_order_parameter_list,label='g_x')
-		axarr[0, 0].plot(np.linspace(temperature_max, temperature_min, temperature_steps), g_y_type_order_parameter_list,label='g_y')
-		axarr[0, 0].plot(np.linspace(temperature_max, temperature_min, temperature_steps), g_z_type_order_parameter_list,label='g_z')
+		axarr[0, 0].plot(temperature_sweep_array, a_x_type_order_parameter_list,label='a_x')
+		axarr[0, 0].plot(temperature_sweep_array, a_y_type_order_parameter_list,label='a_y')
+		axarr[0, 0].plot(temperature_sweep_array, a_z_type_order_parameter_list,label='a_z')
+		axarr[0, 0].plot(temperature_sweep_array, g_x_type_order_parameter_list,label='g_x')
+		axarr[0, 0].plot(temperature_sweep_array, g_y_type_order_parameter_list,label='g_y')
+		axarr[0, 0].plot(temperature_sweep_array, g_z_type_order_parameter_list,label='g_z')
 		axarr[0, 0].set_title('order_parameter')
 		axarr[0, 0].legend()
 		
-		axarr[0, 1].plot(np.linspace(temperature_max, temperature_min, temperature_steps), mn_a_x_type_order_parameter_list,label='mn_a_x')
-		axarr[0, 1].plot(np.linspace(temperature_max, temperature_min, temperature_steps), mn_a_y_type_order_parameter_list,label='mn_a_y')
-		axarr[0, 1].plot(np.linspace(temperature_max, temperature_min, temperature_steps), mn_a_z_type_order_parameter_list,label='mn_a_z')
-		axarr[0, 1].plot(np.linspace(temperature_max, temperature_min, temperature_steps), mn_g_x_type_order_parameter_list,label='mn_g_x')
-		axarr[0, 1].plot(np.linspace(temperature_max, temperature_min, temperature_steps), mn_g_y_type_order_parameter_list,label='mn_g_y')
-		axarr[0, 1].plot(np.linspace(temperature_max, temperature_min, temperature_steps), mn_g_z_type_order_parameter_list,label='mn_g_z')
+		axarr[0, 1].plot(temperature_sweep_array, mn_a_x_type_order_parameter_list,label='mn_a_x')
+		axarr[0, 1].plot(temperature_sweep_array, mn_a_y_type_order_parameter_list,label='mn_a_y')
+		axarr[0, 1].plot(temperature_sweep_array, mn_a_z_type_order_parameter_list,label='mn_a_z')
+		axarr[0, 1].plot(temperature_sweep_array, mn_g_x_type_order_parameter_list,label='mn_g_x')
+		axarr[0, 1].plot(temperature_sweep_array, mn_g_y_type_order_parameter_list,label='mn_g_y')
+		axarr[0, 1].plot(temperature_sweep_array, mn_g_z_type_order_parameter_list,label='mn_g_z')
 		axarr[0, 1].set_title('order_parameter')
 		axarr[0, 1].legend()
 		
-		axarr[0, 2].plot(np.linspace(temperature_max, temperature_min, temperature_steps), fe_a_x_type_order_parameter_list,label='fe_a_x')
-		axarr[0, 2].plot(np.linspace(temperature_max, temperature_min, temperature_steps), fe_a_y_type_order_parameter_list,label='fe_a_y')
-		axarr[0, 2].plot(np.linspace(temperature_max, temperature_min, temperature_steps), fe_a_z_type_order_parameter_list,label='fe_a_z')
-		axarr[0, 2].plot(np.linspace(temperature_max, temperature_min, temperature_steps), fe_g_x_type_order_parameter_list,label='fe_g_x')
-		axarr[0, 2].plot(np.linspace(temperature_max, temperature_min, temperature_steps), fe_g_y_type_order_parameter_list,label='fe_g_y')
-		axarr[0, 2].plot(np.linspace(temperature_max, temperature_min, temperature_steps), fe_g_z_type_order_parameter_list,label='fe_g_z')
+		axarr[0, 2].plot(temperature_sweep_array, fe_a_x_type_order_parameter_list,label='fe_a_x')
+		axarr[0, 2].plot(temperature_sweep_array, fe_a_y_type_order_parameter_list,label='fe_a_y')
+		axarr[0, 2].plot(temperature_sweep_array, fe_a_z_type_order_parameter_list,label='fe_a_z')
+		axarr[0, 2].plot(temperature_sweep_array, fe_g_x_type_order_parameter_list,label='fe_g_x')
+		axarr[0, 2].plot(temperature_sweep_array, fe_g_y_type_order_parameter_list,label='fe_g_y')
+		axarr[0, 2].plot(temperature_sweep_array, fe_g_z_type_order_parameter_list,label='fe_g_z')
 		axarr[0, 2].set_title('order_parameter')
 		axarr[0, 2].legend()
 		
@@ -523,7 +534,7 @@ class SpinLattice(object):
 		
 		np.savetxt(str(int(start_time))+'_x='+str(self.iron_doping_level)+'_N='+str(self.edge_length)+".txt", \
 		np.c_[\
-		np.linspace(temperature_max, temperature_min, temperature_steps),\
+		temperature_sweep_array,\
 		a_x_type_order_parameter_list, a_y_type_order_parameter_list, a_z_type_order_parameter_list,\
 		g_x_type_order_parameter_list, g_y_type_order_parameter_list, g_z_type_order_parameter_list,\
 		mn_a_x_type_order_parameter_list, mn_a_y_type_order_parameter_list, mn_a_z_type_order_parameter_list,\
@@ -533,6 +544,12 @@ class SpinLattice(object):
 		], \
 		delimiter=', ', newline='\n')#, fmt='%.18e', header='', footer='', comments='# ')
 		
+		
+		np.save(str(str(int(start_time))+'_x='+str(self.iron_doping_level)+'_N='+str(self.edge_length) + "E_temperature_array"), E_temperature_array)
+		np.save(str(str(int(start_time))+'_x='+str(self.iron_doping_level)+'_N='+str(self.edge_length) + "A_temperature_array"), A_temperature_array)
+		np.save(str(str(int(start_time))+'_x='+str(self.iron_doping_level)+'_N='+str(self.edge_length) + "G_temperature_array"), G_temperature_array)
+		np.save(str(str(int(start_time))+'_x='+str(self.iron_doping_level)+'_N='+str(self.edge_length) + "nn_pair_corr_ac_temperature_array"), nn_pair_corr_ac_temperature_array)
+		np.save(str(str(int(start_time))+'_x='+str(self.iron_doping_level)+'_N='+str(self.edge_length) + "nn_pair_corr_b_temperature_array"), nn_pair_corr_b_temperature_array)
 		plt.show()
 		
 	def random_ijk_list_generator(self):
@@ -544,19 +561,7 @@ class SpinLattice(object):
 				for k in range(0,edge_length):
 					random_ijk_list.append(np.array([i,j,k]))
 		random.shuffle(random_ijk_list)
-	def possible_angles_list_generator(self, N):
-		possible_angles_list = self.possible_angles_list
-		phi = np.zeros(N)
-		theta = np.zeros(N)
-		for k in range(1,N):
-			h = -1.0 +2.0*(k-1.0)/(N-1.0)
-			#print(h)
-			theta[k] = np.arccos(h)
-			if k == 1 or k == N:
-				phi[k] = 0
-			else:
-				phi[k] = (phi[k-1] + 3.6/np.sqrt(N*(1.0-h**2))) % (2.0*np.pi)
-			possible_angles_list.append(np.array([theta[k], phi[k]]))
+
 
 	def super_exchange_field_calc(self,i,j,k):
 		#theta, phi = self.theta[i,j,k], self.phi[i,j,k]
@@ -950,10 +955,7 @@ def nn_pair_corr(i,j,k):
 
 
 
-def non_min_energy_calc(x, non_min_e, i, j, k):
-	if 1:
-		exit()
-	return (energy_calc(x,i,j,k)-non_min_e)**2
+
 
 
 
@@ -964,7 +966,7 @@ print(time()-start_time)
 #type 1 = Mn
 	
 my_lattice = SpinLattice(\
-iron_doping_level=0.0, edge_length = 8, s_max_0 = 2.5, s_max_1 = 2.0, \
+iron_doping_level=0.0, edge_length = 24, s_max_0 = 2.5, s_max_1 = 2.0, \
 single_ion_anisotropy_0 = np.array([0,0,-0.01]), single_ion_anisotropy_1 = np.array([-4.0,0,0.0]), superexchange = -1, \
 magnetic_field = np.array([0,0,0]))
 my_lattice.init_arrays()
