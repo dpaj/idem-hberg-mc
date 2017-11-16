@@ -5,7 +5,7 @@ print(time()-start_time)
 #type 1 = Mn
 	
 my_lattice = SpinLattice(\
-iron_doping_level=0.0, edge_length = 2, s_max_0 = 2.5, s_max_1 = 2.0, \
+iron_doping_level=0.0, edge_length = 8, s_max_0 = 2.5, s_max_1 = 2.0, \
 single_ion_anisotropy_0 = np.array([0,0,-0.01]), single_ion_anisotropy_1 = np.array([-4.0,0,0.0]), superexchange = -1, \
 magnetic_field = np.array([0,0,0]))
 my_lattice.init_arrays()

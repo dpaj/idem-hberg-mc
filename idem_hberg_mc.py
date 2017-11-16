@@ -427,7 +427,7 @@ class SpinLattice(object):
 			temp_nn_pair_corr_var_ac, temp_nn_pair_corr_var_b = self.nn_pair_corr_calc()
 			
 			#working on this part start
-			#to get the correlatoin length?
+			#to get the correlation length using pair_corr_calc rather than nn_pair_corr_calc
 			temp_pair_corr_var_ac, temp_pair_corr_var_b = self.pair_corr_calc()
 			temp_pair_corr_var_ac = np.delete(temp_pair_corr_var_ac, 0)
 			temp_pair_corr_var_b = np.delete(temp_pair_corr_var_b, 0)
@@ -465,92 +465,16 @@ class SpinLattice(object):
 			
 			print('\nfinal energy=', np.sum(energy), 'pair corr ac then b',temp_nn_pair_corr_var_ac, temp_nn_pair_corr_var_b)
 			
-			#plt.plot(E_list)
-			#plt.show()
-		
-		f, axarr = plt.subplots(3, 3, figsize=(16, 10), dpi=80, facecolor='w', edgecolor='k')
-		#print(dir(axarr))
-		
-		axarr[1, 0].plot(temperature_sweep_array, temperature_E_list,'.-')
-		axarr[1, 0].set_title('energy')
-		#plt.figure()
-		axarr[1, 1].plot(temperature_sweep_array, temporary_nn_pair_corr_list_ac,'.-',label='ac')
-		axarr[1, 1].plot(temperature_sweep_array, temporary_nn_pair_corr_list_b,'.-',label='b')
-		axarr[1, 1].set_title('nn_pair_corr')
-		axarr[1, 1].legend()
-		#plt.figure()
-		axarr[1, 2].plot(equilibration_energy_list)
-		axarr[1, 2].set_title('equilibration_energy')
+		np.save(str(str(int(start_time))+'_x='+str(self.iron_doping_level)+'_N='+str(self.edge_length) + "_E_temperature_array"), E_temperature_array)
+		np.save(str(str(int(start_time))+'_x='+str(self.iron_doping_level)+'_N='+str(self.edge_length) + "_A_temperature_array"), A_temperature_array)
+		np.save(str(str(int(start_time))+'_x='+str(self.iron_doping_level)+'_N='+str(self.edge_length) + "_G_temperature_array"), G_temperature_array)
+		np.save(str(str(int(start_time))+'_x='+str(self.iron_doping_level)+'_N='+str(self.edge_length) + "_nn_pair_corr_ac_temperature_array"), nn_pair_corr_ac_temperature_array)
+		np.save(str(str(int(start_time))+'_x='+str(self.iron_doping_level)+'_N='+str(self.edge_length) + "_nn_pair_corr_b_temperature_array"), nn_pair_corr_b_temperature_array)
+		np.save(str(str(int(start_time))+'_x='+str(self.iron_doping_level)+'_N='+str(self.edge_length) + "_temperature_sweep_array"), temperature_sweep_array)
 
+			
 		
-		axarr[2, 0].plot(temperature_sweep_array, np.gradient(temperature_E_list),'.-')
-		axarr[2, 0].set_title('energy derivative')	
 
-		axarr[2, 1].plot(temperature_sweep_array, np.gradient(temporary_nn_pair_corr_list_ac),'.-',label='ac')
-		axarr[2, 1].plot(temperature_sweep_array, np.gradient(temporary_nn_pair_corr_list_b),'.-',label='b')
-		axarr[2, 1].set_title('nn_pair_corr derivatives')
-		axarr[2, 1].legend()
-		
-		#plt.figure()
-		axarr[0, 0].plot(temperature_sweep_array, a_x_type_order_parameter_list,label='a_x')
-		axarr[0, 0].plot(temperature_sweep_array, a_y_type_order_parameter_list,label='a_y')
-		axarr[0, 0].plot(temperature_sweep_array, a_z_type_order_parameter_list,label='a_z')
-		axarr[0, 0].plot(temperature_sweep_array, g_x_type_order_parameter_list,label='g_x')
-		axarr[0, 0].plot(temperature_sweep_array, g_y_type_order_parameter_list,label='g_y')
-		axarr[0, 0].plot(temperature_sweep_array, g_z_type_order_parameter_list,label='g_z')
-		axarr[0, 0].set_title('order_parameter')
-		axarr[0, 0].legend()
-		
-		axarr[0, 1].plot(temperature_sweep_array, mn_a_x_type_order_parameter_list,label='mn_a_x')
-		axarr[0, 1].plot(temperature_sweep_array, mn_a_y_type_order_parameter_list,label='mn_a_y')
-		axarr[0, 1].plot(temperature_sweep_array, mn_a_z_type_order_parameter_list,label='mn_a_z')
-		axarr[0, 1].plot(temperature_sweep_array, mn_g_x_type_order_parameter_list,label='mn_g_x')
-		axarr[0, 1].plot(temperature_sweep_array, mn_g_y_type_order_parameter_list,label='mn_g_y')
-		axarr[0, 1].plot(temperature_sweep_array, mn_g_z_type_order_parameter_list,label='mn_g_z')
-		axarr[0, 1].set_title('order_parameter')
-		axarr[0, 1].legend()
-		
-		axarr[0, 2].plot(temperature_sweep_array, fe_a_x_type_order_parameter_list,label='fe_a_x')
-		axarr[0, 2].plot(temperature_sweep_array, fe_a_y_type_order_parameter_list,label='fe_a_y')
-		axarr[0, 2].plot(temperature_sweep_array, fe_a_z_type_order_parameter_list,label='fe_a_z')
-		axarr[0, 2].plot(temperature_sweep_array, fe_g_x_type_order_parameter_list,label='fe_g_x')
-		axarr[0, 2].plot(temperature_sweep_array, fe_g_y_type_order_parameter_list,label='fe_g_y')
-		axarr[0, 2].plot(temperature_sweep_array, fe_g_z_type_order_parameter_list,label='fe_g_z')
-		axarr[0, 2].set_title('order_parameter')
-		axarr[0, 2].legend()
-		
-		#the pair corr versus distance try
-		print("temporary_pair_corr_list_ac", temporary_pair_corr_list_ac)
-		print("temporary_pair_corr_list_b", temporary_pair_corr_list_b)
-		print(np.shape(temporary_pair_corr_list_ac))
-		#print(np.shape(np.shape(temporary_pair_corr_list_ac))[1])
-		for asdf in range(0,temperature_steps):
-			axarr[2,2].plot(temporary_pair_corr_list_ac[asdf], label = 'ac', color = 'blue')
-			axarr[2,2].plot(temporary_pair_corr_list_b[asdf], label = 'b', color = 'red')
-		axarr[2,2].legend()
-		
-		print('\ntime=', time()-start_time)
-		plt.suptitle('edge_length='+str(self.edge_length)+', iron_doping_level='+str(self.iron_doping_level)+', magnetic_field='+str(magnetic_field))
-		
-		np.savetxt(str(int(start_time))+'_x='+str(self.iron_doping_level)+'_N='+str(self.edge_length)+".txt", \
-		np.c_[\
-		temperature_sweep_array,\
-		a_x_type_order_parameter_list, a_y_type_order_parameter_list, a_z_type_order_parameter_list,\
-		g_x_type_order_parameter_list, g_y_type_order_parameter_list, g_z_type_order_parameter_list,\
-		mn_a_x_type_order_parameter_list, mn_a_y_type_order_parameter_list, mn_a_z_type_order_parameter_list,\
-		mn_g_x_type_order_parameter_list, mn_g_y_type_order_parameter_list, mn_g_z_type_order_parameter_list,\
-		fe_a_x_type_order_parameter_list, fe_a_y_type_order_parameter_list, fe_a_z_type_order_parameter_list,\
-		fe_g_x_type_order_parameter_list, fe_g_y_type_order_parameter_list, fe_g_z_type_order_parameter_list,\
-		], \
-		delimiter=', ', newline='\n')#, fmt='%.18e', header='', footer='', comments='# ')
-		
-		
-		np.save(str(str(int(start_time))+'_x='+str(self.iron_doping_level)+'_N='+str(self.edge_length) + "E_temperature_array"), E_temperature_array)
-		np.save(str(str(int(start_time))+'_x='+str(self.iron_doping_level)+'_N='+str(self.edge_length) + "A_temperature_array"), A_temperature_array)
-		np.save(str(str(int(start_time))+'_x='+str(self.iron_doping_level)+'_N='+str(self.edge_length) + "G_temperature_array"), G_temperature_array)
-		np.save(str(str(int(start_time))+'_x='+str(self.iron_doping_level)+'_N='+str(self.edge_length) + "nn_pair_corr_ac_temperature_array"), nn_pair_corr_ac_temperature_array)
-		np.save(str(str(int(start_time))+'_x='+str(self.iron_doping_level)+'_N='+str(self.edge_length) + "nn_pair_corr_b_temperature_array"), nn_pair_corr_b_temperature_array)
-		plt.show()
 		
 	def random_ijk_list_generator(self):
 		random_ijk_list = self.random_ijk_list
