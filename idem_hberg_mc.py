@@ -309,38 +309,16 @@ class SpinLattice(object):
 		spaced_theta_values = np.arccos(1-2*np.linspace(0,1,number_of_angle_states))
 		
 		#initialize all of the lists
-		temperature_E_list = []
-		equilibration_energy_list = []
 		temporary_nn_pair_corr_list_ac = []
 		temporary_nn_pair_corr_list_b = []
 		
 		temporary_pair_corr_list_ac = []
 		temporary_pair_corr_list_b = []
-		
-		a_x_type_order_parameter_list = []
-		a_y_type_order_parameter_list = []
-		a_z_type_order_parameter_list = []
-		g_x_type_order_parameter_list = []
-		g_y_type_order_parameter_list = []
-		g_z_type_order_parameter_list = []
-		
-		mn_a_x_type_order_parameter_list = []
-		mn_a_y_type_order_parameter_list = []
-		mn_a_z_type_order_parameter_list = []
-		mn_g_x_type_order_parameter_list = []
-		mn_g_y_type_order_parameter_list = []
-		mn_g_z_type_order_parameter_list = []
-		
-		fe_a_x_type_order_parameter_list = []
-		fe_a_y_type_order_parameter_list = []
-		fe_a_z_type_order_parameter_list = []
-		fe_g_x_type_order_parameter_list = []
-		fe_g_y_type_order_parameter_list = []
-		fe_g_z_type_order_parameter_list = []
-		
+			
 		temperature_sweep_array = np.linspace(temperature_max, temperature_min, temperature_steps)
 		E_temperature_array = np.zeros((temperature_steps, equilibration_steps))
 		
+		nn_pair_corr_abs_abc_temperature_array = np.zeros((temperature_steps, equilibration_steps))
 		nn_pair_corr_ac_temperature_array = np.zeros((temperature_steps, equilibration_steps))
 		nn_pair_corr_b_temperature_array = np.zeros((temperature_steps, equilibration_steps))
 		
@@ -375,6 +353,7 @@ class SpinLattice(object):
 					
 					#make a list of energies to choose from when applying the Boltzmann statistics
 					E_r_list = energy_calc((spaced_theta_values, phi_thermal_r),super_exchange_field_r,single_ion_anisotropy_ijk_r,s_max_ijk)
+					E_r_list = np.add(E_r_list, np.min(E_r_list))
 					
 					#from the list of energies, apply Boltzmann statistics to get the probability of each angle, and normalize
 					P_r_list = np.exp(-E_r_list/temperature)
@@ -404,27 +383,21 @@ class SpinLattice(object):
 					s_y[i,j,k] = s_max_ijk*np.sin(theta[i,j,k])*np.sin(phi[i,j,k])
 					s_z[i,j,k] = s_max_ijk*np.cos(theta[i,j,k])
 					energy[i,j,k] = energy_calc((theta[i,j,k],phi[i,j,k]),super_exchange_field_c,single_ion_anisotropy_ijk,s_max_ijk)
-					
-				equilibration_energy_list.append(np.sum(energy)) #this is the energy of the lattice for a given step in the equilibration
-				
+							
 				#store the energies for each equilibration step, indexed by temperature
-				E_temperature_array[temperature_index, equilibration_index] = np.sum(energy) #((temperature_steps, equilibration_steps))
+				E_temperature_array[temperature_index, equilibration_index] = np.sum(energy)/edge_length**3 #((temperature_steps, equilibration_steps))
 				
 				#store the AF order parameters for each equilibration step, indexed by temperature
-				temp_a_x, temp_a_y, temp_a_z, temp_mn_a_x, temp_mn_a_y, temp_mn_a_z, temp_fe_a_x, temp_fe_a_y, temp_fe_a_z = self.a_type_order_parameter_calc()
-				temp_g_x, temp_g_y, temp_g_z, temp_mn_g_x, temp_mn_g_y, temp_mn_g_z, temp_fe_g_x, temp_fe_g_y, temp_fe_g_z = self.g_type_order_parameter_calc()
+				temp_a_x, temp_a_y, temp_a_z, temp_mn_a_x, temp_mn_a_y, temp_mn_a_z, temp_fe_a_x, temp_fe_a_y, temp_fe_a_z = np.divide(self.a_type_order_parameter_calc(), edge_length**3)
+				temp_g_x, temp_g_y, temp_g_z, temp_mn_g_x, temp_mn_g_y, temp_mn_g_z, temp_fe_g_x, temp_fe_g_y, temp_fe_g_z = np.divide(self.g_type_order_parameter_calc(), edge_length**3)
 				A_temperature_array[0,0,temperature_index, equilibration_index], A_temperature_array[0,1,temperature_index, equilibration_index], A_temperature_array[0,2,temperature_index, equilibration_index], A_temperature_array[1,0,temperature_index, equilibration_index], A_temperature_array[1,1,temperature_index, equilibration_index], A_temperature_array[1,2,temperature_index, equilibration_index], A_temperature_array[2,0,temperature_index, equilibration_index], A_temperature_array[2,1,temperature_index, equilibration_index], A_temperature_array[2,2,temperature_index, equilibration_index] = temp_a_x, temp_a_y, temp_a_z, temp_mn_a_x, temp_mn_a_y, temp_mn_a_z, temp_fe_a_x, temp_fe_a_y, temp_fe_a_z
 				G_temperature_array[0,0,temperature_index, equilibration_index], G_temperature_array[0,1,temperature_index, equilibration_index], G_temperature_array[0,2,temperature_index, equilibration_index], G_temperature_array[1,0,temperature_index, equilibration_index], G_temperature_array[1,1,temperature_index, equilibration_index], G_temperature_array[1,2,temperature_index, equilibration_index], G_temperature_array[2,0,temperature_index, equilibration_index], G_temperature_array[2,1,temperature_index, equilibration_index], G_temperature_array[2,2,temperature_index, equilibration_index] = temp_g_x, temp_g_y, temp_g_z, temp_mn_g_x, temp_mn_g_y, temp_mn_g_z, temp_fe_g_x, temp_fe_g_y, temp_fe_g_z
 				
 				#store the nearest neighbor correlations for each equilibration step, indexed by temperature
-				temp_nn_pair_corr_var_ac, temp_nn_pair_corr_var_b = self.nn_pair_corr_calc()
+				temp_nn_pair_corr_var_abs_abc, temp_nn_pair_corr_var_ac, temp_nn_pair_corr_var_b = np.divide(self.nn_pair_corr_calc(),edge_length**3)
+				nn_pair_corr_abs_abc_temperature_array[temperature_index, equilibration_index] = temp_nn_pair_corr_var_abs_abc
 				nn_pair_corr_ac_temperature_array[temperature_index, equilibration_index] = temp_nn_pair_corr_var_ac
 				nn_pair_corr_b_temperature_array[temperature_index, equilibration_index] = temp_nn_pair_corr_var_b
-
-			
-			temperature_E_list.append(np.sum(energy))
-			
-			temp_nn_pair_corr_var_ac, temp_nn_pair_corr_var_b = self.nn_pair_corr_calc()
 			
 			#working on this part start
 			#to get the correlation length using pair_corr_calc rather than nn_pair_corr_calc
@@ -440,37 +413,16 @@ class SpinLattice(object):
 			temporary_nn_pair_corr_list_ac.append(temp_nn_pair_corr_var_ac)
 			temporary_nn_pair_corr_list_b.append(temp_nn_pair_corr_var_b)
 			
-			temp_a_x, temp_a_y, temp_a_z, temp_mn_a_x, temp_mn_a_y, temp_mn_a_z, temp_fe_a_x, temp_fe_a_y, temp_fe_a_z = self.a_type_order_parameter_calc()
-			temp_g_x, temp_g_y, temp_g_z, temp_mn_g_x, temp_mn_g_y, temp_mn_g_z, temp_fe_g_x, temp_fe_g_y, temp_fe_g_z = self.g_type_order_parameter_calc()
-			a_x_type_order_parameter_list.append(temp_a_x)
-			a_y_type_order_parameter_list.append(temp_a_y)
-			a_z_type_order_parameter_list.append(temp_a_z)
-			g_x_type_order_parameter_list.append(temp_g_x)
-			g_y_type_order_parameter_list.append(temp_g_y)
-			g_z_type_order_parameter_list.append(temp_g_z)
-			
-			mn_a_x_type_order_parameter_list.append(temp_mn_a_x)
-			mn_a_y_type_order_parameter_list.append(temp_mn_a_y)
-			mn_a_z_type_order_parameter_list.append(temp_mn_a_z)
-			mn_g_x_type_order_parameter_list.append(temp_mn_g_x)
-			mn_g_y_type_order_parameter_list.append(temp_mn_g_y)
-			mn_g_z_type_order_parameter_list.append(temp_mn_g_z)
-			
-			fe_a_x_type_order_parameter_list.append(temp_fe_a_x)
-			fe_a_y_type_order_parameter_list.append(temp_fe_a_y)
-			fe_a_z_type_order_parameter_list.append(temp_fe_a_z)
-			fe_g_x_type_order_parameter_list.append(temp_fe_g_x)
-			fe_g_y_type_order_parameter_list.append(temp_fe_g_y)
-			fe_g_z_type_order_parameter_list.append(temp_fe_g_z)
 			
 			print('\nfinal energy=', np.sum(energy), 'pair corr ac then b',temp_nn_pair_corr_var_ac, temp_nn_pair_corr_var_b)
 			
-		np.save(str(str(int(start_time))+'_x='+str(self.iron_doping_level)+'_N='+str(self.edge_length) + "_E_temperature_array"), E_temperature_array)
-		np.save(str(str(int(start_time))+'_x='+str(self.iron_doping_level)+'_N='+str(self.edge_length) + "_A_temperature_array"), A_temperature_array)
-		np.save(str(str(int(start_time))+'_x='+str(self.iron_doping_level)+'_N='+str(self.edge_length) + "_G_temperature_array"), G_temperature_array)
-		np.save(str(str(int(start_time))+'_x='+str(self.iron_doping_level)+'_N='+str(self.edge_length) + "_nn_pair_corr_ac_temperature_array"), nn_pair_corr_ac_temperature_array)
-		np.save(str(str(int(start_time))+'_x='+str(self.iron_doping_level)+'_N='+str(self.edge_length) + "_nn_pair_corr_b_temperature_array"), nn_pair_corr_b_temperature_array)
-		np.save(str(str(int(start_time))+'_x='+str(self.iron_doping_level)+'_N='+str(self.edge_length) + "_temperature_sweep_array"), temperature_sweep_array)
+		np.save(str(str(int(start_time))+'_x='+str(self.iron_doping_level)+'_L='+str(self.edge_length) + "_E_temperature_array"), E_temperature_array)
+		np.save(str(str(int(start_time))+'_x='+str(self.iron_doping_level)+'_L='+str(self.edge_length) + "_A_temperature_array"), A_temperature_array)
+		np.save(str(str(int(start_time))+'_x='+str(self.iron_doping_level)+'_L='+str(self.edge_length) + "_G_temperature_array"), G_temperature_array)
+		np.save(str(str(int(start_time))+'_x='+str(self.iron_doping_level)+'_L='+str(self.edge_length) + "_nn_pair_corr_abs_abc_temperature_array"), nn_pair_corr_abs_abc_temperature_array)
+		np.save(str(str(int(start_time))+'_x='+str(self.iron_doping_level)+'_L='+str(self.edge_length) + "_nn_pair_corr_ac_temperature_array"), nn_pair_corr_ac_temperature_array)
+		np.save(str(str(int(start_time))+'_x='+str(self.iron_doping_level)+'_L='+str(self.edge_length) + "_nn_pair_corr_b_temperature_array"), nn_pair_corr_b_temperature_array)
+		np.save(str(str(int(start_time))+'_x='+str(self.iron_doping_level)+'_L='+str(self.edge_length) + "_temperature_sweep_array"), temperature_sweep_array)
 
 			
 		
@@ -551,39 +503,43 @@ class SpinLattice(object):
 			for j in range(0,edge_length):
 				for k in range(0,edge_length):
 					nn_pair_corrxa[i,j,k], nn_pair_corrya[i,j,k], nn_pair_corrza[i,j,k], nn_pair_corrxb[i,j,k], nn_pair_corryb[i,j,k], nn_pair_corrzb[i,j,k], nn_pair_corrxc[i,j,k], nn_pair_corryc[i,j,k], nn_pair_corrzc[i,j,k] = self.nn_pair_corr(i,j,k)
-		return np.sum(nn_pair_corrxa)+np.sum(nn_pair_corrya)+np.sum(nn_pair_corrza)  +  np.sum(nn_pair_corrxc)+np.sum(nn_pair_corryc)+np.sum(nn_pair_corrzc)  ,  np.sum(nn_pair_corrxb)+np.sum(nn_pair_corryb)+np.sum(nn_pair_corrzb)
+		abs_abc = np.sum(np.abs(nn_pair_corrxa)) + np.sum(np.abs(nn_pair_corrya)) + np.sum(np.abs(nn_pair_corrza)) + np.sum(np.abs(nn_pair_corrxb)) + np.sum(np.abs(nn_pair_corryb)) + np.sum(np.abs(nn_pair_corrzb)) + np.sum(np.abs(nn_pair_corrxc)) + np.sum(np.abs(nn_pair_corryc)) + np.sum(np.abs(nn_pair_corrzc))
+		ac = np.sum(nn_pair_corrxa)+np.sum(nn_pair_corrya)+np.sum(nn_pair_corrza)  +  np.sum(nn_pair_corrxc)+np.sum(nn_pair_corryc)+np.sum(nn_pair_corrzc)
+		b = np.sum(nn_pair_corrxb)+np.sum(nn_pair_corryb)+np.sum(nn_pair_corrzb)
+		return abs_abc, ac ,b
 			
 	def nn_pair_corr(self,i,j,k):
 		edge_length = self.edge_length
+		s_max = self.s_max
 		s_x = self.s_x
 		s_y = self.s_y
 		s_z = self.s_z
 		if i < edge_length-1:
-			nn_pair_corrxa_ijk = s_x[i,j,k]*s_x[i+1,j,k]
-			nn_pair_corrya_ijk = s_y[i,j,k]*s_y[i+1,j,k]
-			nn_pair_corrza_ijk = s_z[i,j,k]*s_z[i+1,j,k]
+			nn_pair_corrxa_ijk = s_x[i,j,k]*s_x[i+1,j,k]/(s_max[i,j,k]*s_max[i+1,j,k])
+			nn_pair_corrya_ijk = s_y[i,j,k]*s_y[i+1,j,k]/(s_max[i,j,k]*s_max[i+1,j,k])
+			nn_pair_corrza_ijk = s_z[i,j,k]*s_z[i+1,j,k]/(s_max[i,j,k]*s_max[i+1,j,k])
 		else:
-			nn_pair_corrxa_ijk = s_x[i,j,k]*s_x[0,j,k]
-			nn_pair_corrya_ijk = s_y[i,j,k]*s_y[0,j,k]
-			nn_pair_corrza_ijk = s_z[i,j,k]*s_z[0,j,k]
+			nn_pair_corrxa_ijk = s_x[i,j,k]*s_x[0,j,k]/(s_max[i,j,k]*s_max[0,j,k])
+			nn_pair_corrya_ijk = s_y[i,j,k]*s_y[0,j,k]/(s_max[i,j,k]*s_max[0,j,k])
+			nn_pair_corrza_ijk = s_z[i,j,k]*s_z[0,j,k]/(s_max[i,j,k]*s_max[0,j,k])
 			
 		if j < edge_length-1:
-			nn_pair_corrxb_ijk = s_x[i,j,k]*s_x[i,j+1,k]
-			nn_pair_corryb_ijk = s_y[i,j,k]*s_y[i,j+1,k]
-			nn_pair_corrzb_ijk = s_z[i,j,k]*s_z[i,j+1,k]
+			nn_pair_corrxb_ijk = s_x[i,j,k]*s_x[i,j+1,k]/(s_max[i,j,k]*s_max[i,j+1,k])
+			nn_pair_corryb_ijk = s_y[i,j,k]*s_y[i,j+1,k]/(s_max[i,j,k]*s_max[i,j+1,k])
+			nn_pair_corrzb_ijk = s_z[i,j,k]*s_z[i,j+1,k]/(s_max[i,j,k]*s_max[i,j+1,k])
 		else:
-			nn_pair_corrxb_ijk = s_x[i,j,k]*s_x[i,0,k]
-			nn_pair_corryb_ijk = s_y[i,j,k]*s_y[i,0,k]
-			nn_pair_corrzb_ijk = s_z[i,j,k]*s_z[i,0,k]
+			nn_pair_corrxb_ijk = s_x[i,j,k]*s_x[i,0,k]/(s_max[i,j,k]*s_max[i,0,k])
+			nn_pair_corryb_ijk = s_y[i,j,k]*s_y[i,0,k]/(s_max[i,j,k]*s_max[i,0,k])
+			nn_pair_corrzb_ijk = s_z[i,j,k]*s_z[i,0,k]/(s_max[i,j,k]*s_max[i,0,k])
 			
 		if k < edge_length-1:
-			nn_pair_corrxc_ijk = s_x[i,j,k]*s_x[i,j,k+1]
-			nn_pair_corryc_ijk = s_y[i,j,k]*s_y[i,j,k+1]
-			nn_pair_corrzc_ijk = s_z[i,j,k]*s_z[i,j,k+1]
+			nn_pair_corrxc_ijk = s_x[i,j,k]*s_x[i,j,k+1]/(s_max[i,j,k]*s_max[i,j,k+1])
+			nn_pair_corryc_ijk = s_y[i,j,k]*s_y[i,j,k+1]/(s_max[i,j,k]*s_max[i,j,k+1])
+			nn_pair_corrzc_ijk = s_z[i,j,k]*s_z[i,j,k+1]/(s_max[i,j,k]*s_max[i,j,k+1])
 		else:
-			nn_pair_corrxc_ijk = s_x[i,j,k]*s_x[i,j,0]
-			nn_pair_corryc_ijk = s_y[i,j,k]*s_y[i,j,0]
-			nn_pair_corrzc_ijk = s_z[i,j,k]*s_z[i,j,0]
+			nn_pair_corrxc_ijk = s_x[i,j,k]*s_x[i,j,0]/(s_max[i,j,k]*s_max[i,j,0])
+			nn_pair_corryc_ijk = s_y[i,j,k]*s_y[i,j,0]/(s_max[i,j,k]*s_max[i,j,0])
+			nn_pair_corrzc_ijk = s_z[i,j,k]*s_z[i,j,0]/(s_max[i,j,k]*s_max[i,j,0])
 
 		return nn_pair_corrxa_ijk, nn_pair_corrya_ijk, nn_pair_corrza_ijk, nn_pair_corrxb_ijk, nn_pair_corryb_ijk, nn_pair_corrzb_ijk, nn_pair_corrxc_ijk, nn_pair_corryc_ijk, nn_pair_corrzc_ijk
 

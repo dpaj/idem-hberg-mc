@@ -1,3 +1,4 @@
+from __future__ import print_function
 from idem_hberg_mc import *
 
 print(time()-start_time)
@@ -17,6 +18,6 @@ print(time()-start_time)
 my_lattice.random_ijk_list_generator()
 
 my_lattice.temperature_sweep(temperature_max=201.0, temperature_min=1.0, temperature_steps=21, \
-equilibration_steps=30, number_of_angle_states=100, magnetic_field=np.array([0.0,0.0,0.0]))
+equilibration_steps=50, number_of_angle_states=100, magnetic_field=np.array([0.0,0.0,0.0]))
 
 print('\ntime=', time()-start_time)
