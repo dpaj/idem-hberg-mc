@@ -353,7 +353,7 @@ class SpinLattice(object):
 					
 					#make a list of energies to choose from when applying the Boltzmann statistics
 					E_r_list = energy_calc((spaced_theta_values, phi_thermal_r),super_exchange_field_r,single_ion_anisotropy_ijk_r,s_max_ijk)
-					E_r_list = np.add(E_r_list, np.min(E_r_list))
+					E_r_list = np.add(E_r_list, -np.min(E_r_list))
 					
 					#from the list of energies, apply Boltzmann statistics to get the probability of each angle, and normalize
 					P_r_list = np.exp(-E_r_list/temperature)

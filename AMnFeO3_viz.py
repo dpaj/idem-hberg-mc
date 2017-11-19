@@ -2,6 +2,7 @@ from __future__ import print_function
 import numpy as np
 from mpl_toolkits.mplot3d import Axes3D
 import matplotlib.pyplot as plt
+import scipy.optimize as spop
 
 #file_time = "1510970159" #x =0.0, L = 4
 #file_time = "1510970392" #x =1.0, L = 4
@@ -44,7 +45,6 @@ nn_pair_corr_b_std_temperature_array = np.zeros(np.shape(temperature_sweep_array
 nn_pair_corr_ac_temperature_array = np.load(file_prefix+"_nn_pair_corr_ac_temperature_array.npy")
 nn_pair_corr_ac_mean_temperature_array = np.zeros(np.shape(temperature_sweep_array))
 nn_pair_corr_ac_std_temperature_array = np.zeros(np.shape(temperature_sweep_array))
-
 
 
 print(temperature_sweep_array)
@@ -99,6 +99,27 @@ axarr[1, 0].plot(temperature_sweep_array, np.sqrt(A_mean_temperature_array[0,0,:
 axarr[1, 0].plot(temperature_sweep_array, A_mean_temperature_array[0,0,:],'o-',label='a$_x$')
 axarr[1, 0].plot(temperature_sweep_array, A_mean_temperature_array[0,1,:],'o-',label='a$_y$')
 axarr[1, 0].plot(temperature_sweep_array, A_mean_temperature_array[0,2,:],'o-',label='a$_z$')
+
+A_fit_temperature_min = 30
+A_fit_temperature_max = 65
+A_tot_mean_temperature_array = np.sqrt(A_mean_temperature_array[0,0,:]**2+A_mean_temperature_array[0,1,:]**2+A_mean_temperature_array[0,2,:]**2)
+
+
+
+print(temperature_sweep_array[ (temperature_sweep_array>=A_fit_temperature_min) & (temperature_sweep_array<=A_fit_temperature_max) ])
+print(A_tot_mean_temperature_array[ (temperature_sweep_array>=A_fit_temperature_min) & (temperature_sweep_array<=A_fit_temperature_max) ])
+
+def a_op_fit(x, super_exchange_field, single_ion_anisotropy_ijk, s_max_ijk):
+	"(T-T_N)^beta"
+
+
+"""
+spop.optimize.fmin(a_op_fit, \
+					maxfun=5000, maxiter=5000, ftol=1e-6, xtol=1e-5,\
+					x0=(theta[i,j,k], phi[i,j,k]), args = (super_exchange_field_c,single_ion_anisotropy_ijk,s_max_ijk), disp=0)
+"""
+
+
 axarr[1, 0].legend()
 
 axarr[1, 1].plot(temperature_sweep_array, np.sqrt(A_mean_temperature_array[1,0,:]**2+A_mean_temperature_array[1,1,:]**2+A_mean_temperature_array[1,2,:]**2)/(1-x),'ko-',label='mn_a$_{tot}$')
