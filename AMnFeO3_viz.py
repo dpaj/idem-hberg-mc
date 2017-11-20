@@ -8,7 +8,7 @@ import scipy.optimize as spop
 #file_time = "1510970392" #x =1.0, L = 4
 #file_time = "1510970584" #x = 0.2, L = 4
 #file_time = "1510973615" #x=0.2, L = 8
-file_time = "1510974914" #x=0.2, L = 8
+file_time = "1510974914" #x=0.0, L = 8
 
 x = "0.0"
 
@@ -79,9 +79,9 @@ f, axarr = plt.subplots(3, 3, figsize=(16, 10), dpi=80, facecolor='w', edgecolor
 axarr[0, 0].plot(E_temperature_array.transpose())
 axarr[0, 0].set_title('energy equilibrations')
 
-axarr[0, 1].plot(temperature_sweep_array, E_mean_temperature_array)
-axarr[0, 1].plot(temperature_sweep_array, E_std_temperature_array)
-axarr[0, 1].plot(temperature_sweep_array, np.gradient(E_mean_temperature_array))
+#axarr[0, 1].plot(temperature_sweep_array, E_mean_temperature_array)
+axarr[0, 1].plot(temperature_sweep_array, E_std_temperature_array**2/temperature_sweep_array**2)
+#axarr[0, 1].plot(temperature_sweep_array, np.gradient(E_mean_temperature_array))
 
 axarr[0, 2].plot(temperature_sweep_array, nn_pair_corr_abs_abc_mean_temperature_array,label='|a|+|b|+|c|')
 #plt.plot(temperature_sweep_array, nn_pair_corr_abs_abc_std_temperature_array)
@@ -106,20 +106,37 @@ A_tot_mean_temperature_array = np.sqrt(A_mean_temperature_array[0,0,:]**2+A_mean
 
 
 
-print(temperature_sweep_array[ (temperature_sweep_array>=A_fit_temperature_min) & (temperature_sweep_array<=A_fit_temperature_max) ])
-print(A_tot_mean_temperature_array[ (temperature_sweep_array>=A_fit_temperature_min) & (temperature_sweep_array<=A_fit_temperature_max) ])
+temperature_sweep_array_slice = temperature_sweep_array[ (temperature_sweep_array>=A_fit_temperature_min) & (temperature_sweep_array<=A_fit_temperature_max) ]
+A_tot_mean_temperature_array_slice = A_tot_mean_temperature_array[ (temperature_sweep_array>=A_fit_temperature_min) & (temperature_sweep_array<=A_fit_temperature_max) ]
 
-def a_op_fit(x, super_exchange_field, single_ion_anisotropy_ijk, s_max_ijk):
-	"(T-T_N)^beta"
+def a_op_fit(x, temperature_sweep_array_slice, A_tot_mean_temperature_array_slice):
+	#fit an arbitrary scale factor, T_N, and beta
+	arbitrary_scale_factor = x[0]
+	T_N = x[1]
+	beta = x[2]
+	print("first",A_tot_mean_temperature_array_slice)
+	print(arbitrary_scale_factor)
+	print(temperature_sweep_array_slice)
+	print(T_N)
+	print(beta)
+	print(np.multiply(arbitrary_scale_factor,np.power((np.divide(temperature_sweep_array_slice-T_N, T_N)),beta)))
+	residuals = np.sum(( A_tot_mean_temperature_array_slice - np.multiply(arbitrary_scale_factor,np.power((np.divide(-temperature_sweep_array_slice+T_N, T_N)),beta)) )**2)
+	print(residuals)
+	return residuals
 
 
-"""
-spop.optimize.fmin(a_op_fit, \
+
+xfit = spop.optimize.fmin(a_op_fit, \
 					maxfun=5000, maxiter=5000, ftol=1e-6, xtol=1e-5,\
-					x0=(theta[i,j,k], phi[i,j,k]), args = (super_exchange_field_c,single_ion_anisotropy_ijk,s_max_ijk), disp=0)
-"""
+					x0=(-2, 65, 0.333), args = (temperature_sweep_array_slice, A_tot_mean_temperature_array_slice), disp=1)
 
-
+print("xfit", xfit)
+arbitrary_scale_factor = xfit[0]
+T_N = xfit[1]
+beta = xfit[2]
+temperature_sweep_array_slice_manypoints = np.linspace(A_fit_temperature_min, A_fit_temperature_max, 100)
+axarr[1, 0].plot(temperature_sweep_array_slice_manypoints,np.multiply(arbitrary_scale_factor,np.power((np.divide(-temperature_sweep_array_slice_manypoints+T_N, T_N)),beta)))
+axarr[1, 0].text(T_N, xfit[0]/2.0, str(str(xfit[0])+"\n"+str(xfit[1])+"\n"+str(xfit[2])), fontsize=12)
 axarr[1, 0].legend()
 
 axarr[1, 1].plot(temperature_sweep_array, np.sqrt(A_mean_temperature_array[1,0,:]**2+A_mean_temperature_array[1,1,:]**2+A_mean_temperature_array[1,2,:]**2)/(1-x),'ko-',label='mn_a$_{tot}$')
