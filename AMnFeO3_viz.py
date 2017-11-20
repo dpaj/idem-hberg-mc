@@ -4,7 +4,7 @@ from mpl_toolkits.mplot3d import Axes3D
 import matplotlib.pyplot as plt
 import scipy.optimize as spop
 
-def a_op_fit(x, temperature_sweep_array_slice, A_tot_mean_temperature_array_slice):
+def op_fit(x, temperature_sweep_array_slice, A_tot_mean_temperature_array_slice):
 	#fit an arbitrary scale factor, T_N, and beta
 	arbitrary_scale_factor = x[0]
 	T_N = x[1]
@@ -17,9 +17,11 @@ def a_op_fit(x, temperature_sweep_array_slice, A_tot_mean_temperature_array_slic
 #file_time = "1510970584" #x = 0.2, L = 4
 #file_time = "1510973615" #x=0.2, L = 8
 #file_time = "1510974914" #x=0.0, L = 8
-file_time = "1511139324" #x=1.0, L = 4
+#file_time = "1511139324" #x=1.0, L = 4
+file_time = "1511199490" #x=0.0, L=4
+file_time = "1511203710" #x=0.2, L=4
 
-x = "1.0"
+x = "0.2"
 
 L = "4"
 
@@ -28,6 +30,11 @@ file_prefix = file_time+"_x="+x+"_L="+L
 x = float(x)
 
 steps_to_burn = 10
+
+A_fit_temperature_min = 20
+A_fit_temperature_max = 50
+G_fit_temperature_min = 10
+G_fit_temperature_max = 85
 
 temperature_sweep_array = np.load(file_prefix+"_temperature_sweep_array.npy")
 
@@ -81,7 +88,39 @@ for atom_index in range(3):
 				G_mean_temperature_array[atom_index,cartesian_direction_index,temperature_index] = np.mean(G_temperature_array[atom_index,cartesian_direction_index,temperature_index,steps_to_burn:equilibration_index])
 				G_std_temperature_array[atom_index,cartesian_direction_index,temperature_index] = np.std(G_temperature_array[atom_index,cartesian_direction_index,temperature_index,steps_to_burn:equilibration_index])
 
-				
+		
+### do some intermediary calculations before displaying
+A_tot_mean_temperature_array = np.sqrt(A_mean_temperature_array[0,0,:]**2+A_mean_temperature_array[0,1,:]**2+A_mean_temperature_array[0,2,:]**2)
+G_tot_mean_temperature_array = np.sqrt(G_mean_temperature_array[0,0,:]**2+G_mean_temperature_array[0,1,:]**2+G_mean_temperature_array[0,2,:]**2)
+
+
+A_temperature_sweep_array_slice = temperature_sweep_array[ (temperature_sweep_array>=A_fit_temperature_min) & (temperature_sweep_array<=A_fit_temperature_max) ]
+A_tot_mean_temperature_array_slice = A_tot_mean_temperature_array[ (temperature_sweep_array>=A_fit_temperature_min) & (temperature_sweep_array<=A_fit_temperature_max) ]
+
+
+G_temperature_sweep_array_slice = temperature_sweep_array[ (temperature_sweep_array>=G_fit_temperature_min) & (temperature_sweep_array<=G_fit_temperature_max) ]
+G_tot_mean_temperature_array_slice = G_tot_mean_temperature_array[ (temperature_sweep_array>=G_fit_temperature_min) & (temperature_sweep_array<=G_fit_temperature_max) ]
+
+a_xfit = spop.optimize.fmin(op_fit, \
+					maxfun=5000, maxiter=5000, ftol=1e-6, xtol=1e-5,\
+					x0=(-2, 65, 0.333), args = (A_temperature_sweep_array_slice, A_tot_mean_temperature_array_slice), disp=1)
+
+a_arbitrary_scale_factor = a_xfit[0]
+a_T_N = a_xfit[1]
+a_beta = a_xfit[2]
+A_temperature_sweep_array_slice_manypoints = np.linspace(A_fit_temperature_min, A_fit_temperature_max, 100)
+
+xfit = spop.optimize.fmin(op_fit, \
+					maxfun=5000, maxiter=5000, ftol=1e-6, xtol=1e-5,\
+					x0=(-2.5, 690, 0.333), args = (G_temperature_sweep_array_slice, G_tot_mean_temperature_array_slice), disp=1)
+
+g_arbitrary_scale_factor = xfit[0]
+g_T_N = xfit[1]
+g_beta = xfit[2]
+g_temperature_sweep_array_slice_manypoints = np.linspace(G_fit_temperature_min, G_fit_temperature_max, 100)
+
+
+		
 
 f, axarr = plt.subplots(3, 3, figsize=(16, 10), dpi=80, facecolor='w', edgecolor='k')
 				
@@ -100,6 +139,7 @@ axarr[0, 2].plot(temperature_sweep_array, nn_pair_corr_b_mean_temperature_array,
 axarr[0, 2].plot(temperature_sweep_array, nn_pair_corr_ac_mean_temperature_array, label = 'a+c')
 #plt.plot(temperature_sweep_array, nn_pair_corr_ac_std_temperature_array)
 #plt.plot(temperature_sweep_array, np.gradient(nn_pair_corr_ac_mean_temperature_array))
+axarr[0, 2].text(np.max(temperature_sweep_array)/2.0, np.max(nn_pair_corr_abs_abc_mean_temperature_array)*0.8, str("T$_{min}$ collinearity="+str(nn_pair_corr_abs_abc_mean_temperature_array[-1]/3.0)), fontsize=12)
 axarr[0, 0].set_title('n.n. pair correlation')
 axarr[0, 2].legend()
 
@@ -109,68 +149,39 @@ axarr[1, 0].plot(temperature_sweep_array, A_mean_temperature_array[0,0,:],'o-',l
 axarr[1, 0].plot(temperature_sweep_array, A_mean_temperature_array[0,1,:],'o-',label='a$_y$')
 axarr[1, 0].plot(temperature_sweep_array, A_mean_temperature_array[0,2,:],'o-',label='a$_z$')
 
-A_fit_temperature_min = 30
-A_fit_temperature_max = 65
-A_tot_mean_temperature_array = np.sqrt(A_mean_temperature_array[0,0,:]**2+A_mean_temperature_array[0,1,:]**2+A_mean_temperature_array[0,2,:]**2)
 
-G_fit_temperature_min = 300
-G_fit_temperature_max = 680
-G_tot_mean_temperature_array = np.sqrt(G_mean_temperature_array[0,0,:]**2+G_mean_temperature_array[0,1,:]**2+G_mean_temperature_array[0,2,:]**2)
-
-
-A_temperature_sweep_array_slice = temperature_sweep_array[ (temperature_sweep_array>=A_fit_temperature_min) & (temperature_sweep_array<=A_fit_temperature_max) ]
-A_tot_mean_temperature_array_slice = A_tot_mean_temperature_array[ (temperature_sweep_array>=A_fit_temperature_min) & (temperature_sweep_array<=A_fit_temperature_max) ]
-
-
-G_temperature_sweep_array_slice = temperature_sweep_array[ (temperature_sweep_array>=G_fit_temperature_min) & (temperature_sweep_array<=G_fit_temperature_max) ]
-G_tot_mean_temperature_array_slice = G_tot_mean_temperature_array[ (temperature_sweep_array>=G_fit_temperature_min) & (temperature_sweep_array<=G_fit_temperature_max) ]
-
-
-
-
-xfit = spop.optimize.fmin(a_op_fit, \
-					maxfun=5000, maxiter=5000, ftol=1e-6, xtol=1e-5,\
-					x0=(-2, 65, 0.333), args = (A_temperature_sweep_array_slice, A_tot_mean_temperature_array_slice), disp=1)
-
-arbitrary_scale_factor = xfit[0]
-T_N = xfit[1]
-beta = xfit[2]
-A_temperature_sweep_array_slice_manypoints = np.linspace(A_fit_temperature_min, A_fit_temperature_max, 100)
-axarr[1, 0].plot(A_temperature_sweep_array_slice_manypoints,np.multiply(arbitrary_scale_factor,np.power((np.divide(-A_temperature_sweep_array_slice_manypoints+T_N, T_N)),beta)))
-axarr[1, 0].text(T_N, xfit[0]/2.0, str(str(xfit[0])+"\n"+str(xfit[1])+"\n"+str(xfit[2])), fontsize=12)
+axarr[1, 0].plot(A_temperature_sweep_array_slice_manypoints,np.multiply(a_arbitrary_scale_factor,np.power((np.divide(-A_temperature_sweep_array_slice_manypoints+a_T_N, a_T_N)),a_beta)))
+axarr[1, 0].text(a_T_N, a_xfit[0]/2.0, str(str(a_xfit[0])+"\n"+str(a_xfit[1])+"\n"+str(a_xfit[2])), fontsize=12)
 axarr[1, 0].legend()
 
 axarr[1, 1].plot(temperature_sweep_array, np.sqrt(A_mean_temperature_array[1,0,:]**2+A_mean_temperature_array[1,1,:]**2+A_mean_temperature_array[1,2,:]**2)/(1-x),'ko-',label='mn_a$_{tot}$')
+
 axarr[1, 1].plot(temperature_sweep_array, A_mean_temperature_array[1,0,:]/(1-x),label='mn_a$_x$')
 axarr[1, 1].plot(temperature_sweep_array, A_mean_temperature_array[1,1,:]/(1-x),label='mn_a$_y$')
 axarr[1, 1].plot(temperature_sweep_array, A_mean_temperature_array[1,2,:]/(1-x),label='mn_a$_z$')
+axarr[1, 1].text(np.max(temperature_sweep_array)/2.0, (np.sqrt(A_mean_temperature_array[1,0,:]**2+A_mean_temperature_array[1,1,:]**2+A_mean_temperature_array[1,2,:]**2)/(1-x))[-1]*0.8, str((np.sqrt(A_mean_temperature_array[1,0,:]**2+A_mean_temperature_array[1,1,:]**2+A_mean_temperature_array[1,2,:]**2)/(1-x))[-1]), fontsize=12)
+
 axarr[1, 1].legend()
 
 axarr[1, 2].plot(temperature_sweep_array, np.sqrt(A_mean_temperature_array[2,0,:]**2+A_mean_temperature_array[2,1,:]**2+A_mean_temperature_array[2,2,:]**2)/x,'ko-',label='fe_a$_{tot}$')
 axarr[1, 2].plot(temperature_sweep_array, A_mean_temperature_array[2,0,:]/x,label='fe_a$_x$')
 axarr[1, 2].plot(temperature_sweep_array, A_mean_temperature_array[2,1,:]/x,label='fe_a$_y$')
 axarr[1, 2].plot(temperature_sweep_array, A_mean_temperature_array[2,2,:]/x,label='fe_a$_z$')
+axarr[1, 2].text(np.max(temperature_sweep_array)/2.0, (np.sqrt(A_mean_temperature_array[2,0,:]**2+A_mean_temperature_array[2,1,:]**2+A_mean_temperature_array[2,2,:]**2)/x)[-1]*0.8, str((np.sqrt(A_mean_temperature_array[2,0,:]**2+A_mean_temperature_array[2,1,:]**2+A_mean_temperature_array[2,2,:]**2)/x)[-1]), fontsize=12)
+
 axarr[1, 2].legend()
 
 axarr[2, 0].plot(temperature_sweep_array, np.sqrt(G_mean_temperature_array[0,0,:]**2+G_mean_temperature_array[0,1,:]**2+G_mean_temperature_array[0,2,:]**2),'ko-',label='g$_{tot}$')
 axarr[2, 0].plot(temperature_sweep_array, G_mean_temperature_array[0,0,:],'.-',label='g$_x$')
 axarr[2, 0].plot(temperature_sweep_array, G_mean_temperature_array[0,1,:],'.-',label='g$_y$')
 axarr[2, 0].plot(temperature_sweep_array, G_mean_temperature_array[0,2,:],'.-',label='g$_z$')
-
-xfit = spop.optimize.fmin(a_op_fit, \
-					maxfun=5000, maxiter=5000, ftol=1e-6, xtol=1e-5,\
-					x0=(-2.5, 690, 0.333), args = (G_temperature_sweep_array_slice, G_tot_mean_temperature_array_slice), disp=1)
-
-arbitrary_scale_factor = xfit[0]
-T_N = xfit[1]
-beta = xfit[2]
-temperature_sweep_array_slice_manypoints = np.linspace(G_fit_temperature_min, G_fit_temperature_max, 100)
-axarr[2, 0].plot(temperature_sweep_array_slice_manypoints,np.multiply(arbitrary_scale_factor,np.power((np.divide(-temperature_sweep_array_slice_manypoints+T_N, T_N)),beta)))
-axarr[2, 0].text(T_N, xfit[0]/2.0, str(str(xfit[0])+"\n"+str(xfit[1])+"\n"+str(xfit[2])), fontsize=12)
+axarr[2, 0].plot(g_temperature_sweep_array_slice_manypoints,np.multiply(g_arbitrary_scale_factor,np.power((np.divide(-g_temperature_sweep_array_slice_manypoints+g_T_N, g_T_N)),g_beta)))
+axarr[2, 0].text(g_T_N, xfit[0]/2.0, str(str(xfit[0])+"\n"+str(xfit[1])+"\n"+str(xfit[2])), fontsize=12)
 
 axarr[2, 0].legend()
 
 axarr[2, 1].plot(temperature_sweep_array, np.sqrt(G_mean_temperature_array[1,0,:]**2+G_mean_temperature_array[1,1,:]**2+G_mean_temperature_array[1,2,:]**2)/(1-x),'ko-',label='mn_g$_{tot}$')
+axarr[2, 1].text(np.max(temperature_sweep_array)/2.0, (np.sqrt(G_mean_temperature_array[1,0,:]**2+G_mean_temperature_array[1,1,:]**2+G_mean_temperature_array[1,2,:]**2)/(1-x))[-1]*0.8, str((np.sqrt(G_mean_temperature_array[1,0,:]**2+G_mean_temperature_array[1,1,:]**2+G_mean_temperature_array[1,2,:]**2)/(1-x))[-1]), fontsize=12)
 axarr[2, 1].plot(temperature_sweep_array, G_mean_temperature_array[1,0,:]/(1-x),label='mn_g$_x$')
 axarr[2, 1].plot(temperature_sweep_array, G_mean_temperature_array[1,1,:]/(1-x),label='mn_g$_y$')
 axarr[2, 1].plot(temperature_sweep_array, G_mean_temperature_array[1,2,:]/(1-x),label='mn_g$_z$')
@@ -180,46 +191,8 @@ axarr[2, 2].plot(temperature_sweep_array, np.sqrt(G_mean_temperature_array[2,0,:
 axarr[2, 2].plot(temperature_sweep_array, G_mean_temperature_array[2,0,:]/x,label='fe_g$_x$')
 axarr[2, 2].plot(temperature_sweep_array, G_mean_temperature_array[2,1,:]/x,label='fe_g$_y$')
 axarr[2, 2].plot(temperature_sweep_array, G_mean_temperature_array[2,2,:]/x,label='fe_g$_z$')
+axarr[2, 2].text(np.max(temperature_sweep_array)/2.0, (np.sqrt(G_mean_temperature_array[2,0,:]**2+G_mean_temperature_array[2,1,:]**2+G_mean_temperature_array[2,2,:]**2)/x)[-1]*0.8, str((np.sqrt(G_mean_temperature_array[2,0,:]**2+G_mean_temperature_array[2,1,:]**2+G_mean_temperature_array[2,2,:]**2)/x)[-1]), fontsize=12)
 axarr[2, 2].legend()
-"""
-plt.figure()
-plt.plot(temperature_sweep_array, A_std_temperature_array[0,0,:])
-plt.plot(temperature_sweep_array, A_std_temperature_array[0,1,:])
-plt.plot(temperature_sweep_array, A_std_temperature_array[0,2,:])
 
-plt.plot(temperature_sweep_array, A_std_temperature_array[1,0,:])
-plt.plot(temperature_sweep_array, A_std_temperature_array[1,1,:])
-plt.plot(temperature_sweep_array, A_std_temperature_array[1,2,:])
-
-plt.plot(temperature_sweep_array, A_std_temperature_array[2,0,:])
-plt.plot(temperature_sweep_array, A_std_temperature_array[2,1,:])
-plt.plot(temperature_sweep_array, A_std_temperature_array[2,2,:])
-		
-plt.figure()
-
-
-plt.plot(temperature_sweep_array, G_mean_temperature_array[1,0,:])
-plt.plot(temperature_sweep_array, G_mean_temperature_array[1,1,:])
-plt.plot(temperature_sweep_array, G_mean_temperature_array[1,2,:])
-
-plt.plot(temperature_sweep_array, G_mean_temperature_array[2,0,:])
-plt.plot(temperature_sweep_array, G_mean_temperature_array[2,1,:])
-plt.plot(temperature_sweep_array, G_mean_temperature_array[2,2,:])
-
-plt.figure()
-plt.plot(temperature_sweep_array, G_std_temperature_array[0,0,:])
-plt.plot(temperature_sweep_array, G_std_temperature_array[0,1,:])
-plt.plot(temperature_sweep_array, G_std_temperature_array[0,2,:])
-
-plt.plot(temperature_sweep_array, G_std_temperature_array[1,0,:])
-plt.plot(temperature_sweep_array, G_std_temperature_array[1,1,:])
-plt.plot(temperature_sweep_array, G_std_temperature_array[1,2,:])
-
-plt.plot(temperature_sweep_array, G_std_temperature_array[2,0,:])
-plt.plot(temperature_sweep_array, G_std_temperature_array[2,1,:])
-plt.plot(temperature_sweep_array, G_std_temperature_array[2,2,:])
-
-		
-"""		
 plt.suptitle('edge_length='+str(L)+', iron_doping_level='+str(x))
 plt.show()
