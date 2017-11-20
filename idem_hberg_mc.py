@@ -306,6 +306,12 @@ class SpinLattice(object):
 		single_ion_anisotropy = self.single_ion_anisotropy
 		random_ijk_list = self.random_ijk_list
 		
+		#write the header to the status file
+		f = open(str(str(int(start_time))+'_x='+str(self.iron_doping_level)+'_L='+str(self.edge_length) + "_run_status"),'w')
+		f.write(str('x='+str(self.iron_doping_level)+' L='+str(self.edge_length)+"\n"))
+		f.write("temperature (K), elapsed time (s), energy per site (K)\n")
+		f.close()
+		
 		#when looking at the 0 to pi theta values that will be thermalized after choosing a random phi value from knowing the minimum energy
 		spaced_theta_values = np.arccos(1-2*np.linspace(0,1,number_of_angle_states))
 		
@@ -399,7 +405,13 @@ class SpinLattice(object):
 				nn_pair_corr_abs_abc_temperature_array[temperature_index, equilibration_index] = temp_nn_pair_corr_var_abs_abc
 				nn_pair_corr_ac_temperature_array[temperature_index, equilibration_index] = temp_nn_pair_corr_var_ac
 				nn_pair_corr_b_temperature_array[temperature_index, equilibration_index] = temp_nn_pair_corr_var_b
+				
+			#write to a status file for this temperature
+			f = open(str(str(int(start_time))+'_x='+str(self.iron_doping_level)+'_L='+str(self.edge_length) + "_run_status"),'a')
+			f.write(str(temperature) + ", " + str(time() - start_time) + ", " + str(np.sum(energy)/edge_length**3)+"\n")
+			f.close()
 			
+			"""
 			#working on this part start
 			#to get the correlation length using pair_corr_calc rather than nn_pair_corr_calc
 			temp_pair_corr_var_ac, temp_pair_corr_var_b = self.pair_corr_calc()
@@ -413,6 +425,7 @@ class SpinLattice(object):
 			
 			temporary_nn_pair_corr_list_ac.append(temp_nn_pair_corr_var_ac)
 			temporary_nn_pair_corr_list_b.append(temp_nn_pair_corr_var_b)
+			"""
 			
 			
 			print('\nfinal energy=', np.sum(energy), 'pair corr ac then b',temp_nn_pair_corr_var_ac, temp_nn_pair_corr_var_b)
