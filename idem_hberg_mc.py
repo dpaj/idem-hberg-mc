@@ -10,6 +10,7 @@ import scipy.optimize as spop
 from scipy.integrate import quad
 from scipy.interpolate import interp1d
 import random
+import os
 
 
 hbar = 6.626070040e-34 #SI units
