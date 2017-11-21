@@ -66,6 +66,7 @@ class SpinLattice(object):
 		self.mn_a_type_mask = np.zeros((edge_length,edge_length,edge_length))
 		self.fe_g_type_mask = np.zeros((edge_length,edge_length,edge_length))
 		self.fe_a_type_mask = np.zeros((edge_length,edge_length,edge_length))
+		self.superexchange = superexchange
 		self.superexchange_array = np.zeros((edge_length,edge_length,edge_length,6))
 		self.magnetic_field = magnetic_field
 		self.s_max = np.zeros((edge_length,edge_length,edge_length))
@@ -176,15 +177,24 @@ class SpinLattice(object):
 		super_exchange_ijk = superexchange_array[i,j,k] #np.array([0,0,0,0,0,0])
 		atom_type_ijk = atom_type[i,j,k]
 		
-		JFeFe = 62.0
-		JMnMnb = 6.7
-		JMnMnac = -9.6
-		JMnFeb = 17.0
-		JMnFeac = 29.0
+		if self.superexchange == -1:
+			JFeFeb = 62.0
+			JFeFeac = 62.0
+			JMnMnb = 6.7
+			JMnMnac = -9.6
+			JMnFeb = 17.0
+			JMnFeac = 29.0
+		else:
+			JFeFeb = self.superexchange[0]
+			JFeFeac = self.superexchange[1]
+			JMnMnb = self.superexchange[2]
+			JMnMnac = self.superexchange[3]
+			JMnFeb = self.superexchange[4]
+			JMnFeac = self.superexchange[5]
 
-		JFeFex = JFeFe
-		JFeFey = JFeFe
-		JFeFez = JFeFe
+		JFeFex = JFeFeac
+		JFeFey = JFeFeb
+		JFeFez = JFeFeac
 
 		JMnMnx = JMnMnac
 		JMnMny = JMnMnb
