@@ -52,7 +52,7 @@ class SpinLattice(object):
 
 
 	"""
-	def __init__(self, edge_length=None, iron_doping_level=None, s_max_0=None, s_max_1=None, single_ion_anisotropy_0 = None, single_ion_anisotropy_1 = None, single_ion_anisotropy=None, superexchange=None, magnetic_field=None, s_x=None, s_y=None, s_z=None, phi=None, theta=None, energy=None, total_energy=None, random_ijk_array=None,temporary_nn_pair_corr=None, atom_type=None):
+	def __init__(self, edge_length=None, iron_doping_level=None, s_max_0=None, s_max_1=None, single_ion_anisotropy_0 = None, single_ion_anisotropy_1 = None, single_ion_anisotropy=None, superexchange=None, magnetic_field=None, s_x=None, s_y=None, s_z=None, phi=None, theta=None, energy=None, total_energy=None, random_ijk_array=None,temporary_nn_pair_corr=None, atom_type=None, file_prefix=""):
 		self.iron_doping_level = iron_doping_level
 		self.edge_length = edge_length
 		self.single_ion_anisotropy = np.zeros((edge_length,edge_length,edge_length,3))
@@ -80,6 +80,7 @@ class SpinLattice(object):
 		self.random_ijk_list = []
 		self.temporary_nn_pair_corr = 0
 		self.atom_type = np.zeros((edge_length,edge_length,edge_length), dtype = np.int8)
+		self.file_prefix = file_prefix
 		
 	def __str__(self):
 		return "SpinLattice"
@@ -317,7 +318,7 @@ class SpinLattice(object):
 		random_ijk_list = self.random_ijk_list
 		
 		#write the header to the status file
-		f = open(str(str(int(start_time))+'_x='+str(self.iron_doping_level)+'_L='+str(self.edge_length) + "_run_status"),'w')
+		f = open(str(self.file_prefix+str(int(start_time))+'_x='+str(self.iron_doping_level)+'_L='+str(self.edge_length) + "_run_status"),'w')
 		f.write(str('x='+str(self.iron_doping_level)+' L='+str(self.edge_length)+"\n"))
 		f.write("temperature (K), elapsed time (s), energy per site (K)\n")
 		f.close()
@@ -370,7 +371,7 @@ class SpinLattice(object):
 					
 					#make a list of energies to choose from when applying the Boltzmann statistics
 					E_r_list = energy_calc((spaced_theta_values, phi_thermal_r),super_exchange_field_r,single_ion_anisotropy_ijk_r,s_max_ijk)
-					E_r_list = np.add(E_r_list, -np.min(E_r_list))
+					E_r_list = np.add(E_r_list, -np.min(E_r_list)) #the energies are always less than zero, so we add the negative of the minimum to avoid large numbers in Boltzmann factor
 					
 					#from the list of energies, apply Boltzmann statistics to get the probability of each angle, and normalize
 					P_r_list = np.exp(-E_r_list/temperature)
@@ -417,7 +418,7 @@ class SpinLattice(object):
 				nn_pair_corr_b_temperature_array[temperature_index, equilibration_index] = temp_nn_pair_corr_var_b
 				
 			#write to a status file for this temperature
-			f = open(str(str(int(start_time))+'_x='+str(self.iron_doping_level)+'_L='+str(self.edge_length) + "_run_status"),'a')
+			f = open(self.file_prefix+str(str(int(start_time))+'_x='+str(self.iron_doping_level)+'_L='+str(self.edge_length) + "_run_status"),'a')
 			f.write(str(temperature) + ", " + str(time() - start_time) + ", " + str(np.sum(energy)/edge_length**3)+"\n")
 			f.close()
 			
@@ -439,14 +440,17 @@ class SpinLattice(object):
 			
 			
 			print('\nfinal energy=', np.sum(energy), 'pair corr ac then b',temp_nn_pair_corr_var_ac, temp_nn_pair_corr_var_b)
+			np.save(str(self.file_prefix+str(int(start_time))+'_x='+str(self.iron_doping_level)+'_L='+str(self.edge_length) + "_s_x"), s_x)
+			np.save(str(self.file_prefix+str(int(start_time))+'_x='+str(self.iron_doping_level)+'_L='+str(self.edge_length) + "_s_y"), s_y)
+			np.save(str(self.file_prefix+str(int(start_time))+'_x='+str(self.iron_doping_level)+'_L='+str(self.edge_length) + "_s_z"), s_z)
 			
-		np.save(str(str(int(start_time))+'_x='+str(self.iron_doping_level)+'_L='+str(self.edge_length) + "_E_temperature_array"), E_temperature_array)
-		np.save(str(str(int(start_time))+'_x='+str(self.iron_doping_level)+'_L='+str(self.edge_length) + "_A_temperature_array"), A_temperature_array)
-		np.save(str(str(int(start_time))+'_x='+str(self.iron_doping_level)+'_L='+str(self.edge_length) + "_G_temperature_array"), G_temperature_array)
-		np.save(str(str(int(start_time))+'_x='+str(self.iron_doping_level)+'_L='+str(self.edge_length) + "_nn_pair_corr_abs_abc_temperature_array"), nn_pair_corr_abs_abc_temperature_array)
-		np.save(str(str(int(start_time))+'_x='+str(self.iron_doping_level)+'_L='+str(self.edge_length) + "_nn_pair_corr_ac_temperature_array"), nn_pair_corr_ac_temperature_array)
-		np.save(str(str(int(start_time))+'_x='+str(self.iron_doping_level)+'_L='+str(self.edge_length) + "_nn_pair_corr_b_temperature_array"), nn_pair_corr_b_temperature_array)
-		np.save(str(str(int(start_time))+'_x='+str(self.iron_doping_level)+'_L='+str(self.edge_length) + "_temperature_sweep_array"), temperature_sweep_array)
+		np.save(str(self.file_prefix+str(int(start_time))+'_x='+str(self.iron_doping_level)+'_L='+str(self.edge_length) + "_E_temperature_array"), E_temperature_array)
+		np.save(str(self.file_prefix+str(int(start_time))+'_x='+str(self.iron_doping_level)+'_L='+str(self.edge_length) + "_A_temperature_array"), A_temperature_array)
+		np.save(str(self.file_prefix+str(int(start_time))+'_x='+str(self.iron_doping_level)+'_L='+str(self.edge_length) + "_G_temperature_array"), G_temperature_array)
+		np.save(str(self.file_prefix+str(int(start_time))+'_x='+str(self.iron_doping_level)+'_L='+str(self.edge_length) + "_nn_pair_corr_abs_abc_temperature_array"), nn_pair_corr_abs_abc_temperature_array)
+		np.save(str(self.file_prefix+str(int(start_time))+'_x='+str(self.iron_doping_level)+'_L='+str(self.edge_length) + "_nn_pair_corr_ac_temperature_array"), nn_pair_corr_ac_temperature_array)
+		np.save(str(self.file_prefix+str(int(start_time))+'_x='+str(self.iron_doping_level)+'_L='+str(self.edge_length) + "_nn_pair_corr_b_temperature_array"), nn_pair_corr_b_temperature_array)
+		np.save(str(self.file_prefix+str(int(start_time))+'_x='+str(self.iron_doping_level)+'_L='+str(self.edge_length) + "_temperature_sweep_array"), temperature_sweep_array)
 
 			
 		
