@@ -8,7 +8,7 @@ print(time()-start_time)
 my_lattice = SpinLattice(\
 iron_doping_level=0.1, edge_length = 4, s_max_0 = 2.5, s_max_1 = 2.0, \
 single_ion_anisotropy_0 = np.array([0,0,-0.01]), single_ion_anisotropy_1 = np.array([-4.0,0,0.0]), superexchange = -1, \
-magnetic_field = np.array([0,0,0]))
+magnetic_field = np.array([0,0,0]), file_prefix = "AMnFeO3_")
 my_lattice.init_arrays()
 my_lattice.make_op_masks()
 my_lattice.bond_list_calc()
