@@ -12,31 +12,28 @@ def op_fit(x, temperature_sweep_array_slice, A_tot_mean_temperature_array_slice)
 	residuals = np.sum(( A_tot_mean_temperature_array_slice - np.multiply(arbitrary_scale_factor,np.power((np.divide(-temperature_sweep_array_slice+T_N, T_N)),beta)) )**2)
 	return residuals
 
-#file_time = "1510970159" #x =0.0, L = 4
-#file_time = "1510970392" #x =1.0, L = 4
-#file_time = "1510970584" #x = 0.2, L = 4
-#file_time = "1510973615" #x=0.2, L = 8
-#file_time = "1510974914" #x=0.0, L = 8
-#file_time = "1511139324" #x=1.0, L = 4
-file_time = "1511199490" #x=0.0, L=4
-file_time = "1511203710" #x=0.2, L=4
 file_time = "1511284876" #x=0.0, L=4
+file_time = "1511285366" #x=0.0, L=8
+file_time = "1511286842" #x=0.0, L=8, D=[-4,0,0]
+file_time = "1511289179"
+file_time = "1511289327"
+file_time = "1511285366"
 
 x = "0.0"
 
-L = "4"
+L = "8"
 
 file_prefix = "J1S1_"+file_time+"_x="+x+"_L="+L
 
 x = float(x)
 edge_length = int(L)
 
-steps_to_burn = 10
+steps_to_burn = 25
 
-A_fit_temperature_min = 0
-A_fit_temperature_max = 1.8
-G_fit_temperature_min = 0
-G_fit_temperature_max = 1.8
+A_fit_temperature_min = 1.3
+A_fit_temperature_max = 1.6
+G_fit_temperature_min = 1.3
+G_fit_temperature_max = 1.6
 
 s_x = np.load(file_prefix+"_s_x.npy")
 s_y = np.load(file_prefix+"_s_y.npy")
@@ -205,9 +202,9 @@ if x != 0:
 	axarr[2, 2].legend()
 else:
 	axarr[2, 2].loglog(np.divide(-g_temperature_sweep_array_slice_manypoints+g_T_N, g_T_N),np.multiply(g_arbitrary_scale_factor,np.power((np.divide(-g_temperature_sweep_array_slice_manypoints+g_T_N, g_T_N)),g_beta)))
-	axarr[2, 2].loglog(np.divide(-temperature_sweep_array+g_T_N, g_T_N), np.sqrt(G_mean_temperature_array[0,0,:]**2+G_mean_temperature_array[0,1,:]**2+G_mean_temperature_array[0,2,:]**2),'ko-',label='g$_{tot}$')
+	axarr[2, 2].loglog(np.divide(-temperature_sweep_array+g_T_N, g_T_N), np.sqrt(G_mean_temperature_array[0,0,:]**2+G_mean_temperature_array[0,1,:]**2+G_mean_temperature_array[0,2,:]**2),'ko',label='g$_{tot}$')
 
-plt.suptitle('edge_length='+str(L)+', iron_doping_level='+str(x))
+plt.suptitle('file_prefix='+str(file_prefix+file_time)+'edge_length='+str(L)+', iron_doping_level='+str(x)+', steps_to_burn'+str(steps_to_burn))
 
 if 1: #should each 3d map of the spins be drawn?
 	moment_visualization_scale_factor = 0.5
@@ -218,8 +215,12 @@ if 1: #should each 3d map of the spins be drawn?
 	for i in range(0,edge_length):
 		for j in range(0,edge_length):
 			for k in range(0,edge_length):
-				ax.scatter(i, j, k, color = 'black', marker='o')
-				ax.plot([i,i+s_x[i,j,k]*moment_visualization_scale_factor], [j,j+s_y[i,j,k]*moment_visualization_scale_factor], [k,k+s_z[i,j,k]*moment_visualization_scale_factor], color = 'black')
+				if (i+j+k)%2 == 0:
+					plot_color = 'black'
+				else:
+					plot_color = 'red'
+				ax.scatter(i, j, k, color = plot_color, marker='o')
+				ax.plot([i,i+s_x[i,j,k]*moment_visualization_scale_factor], [j,j+s_y[i,j,k]*moment_visualization_scale_factor], [k,k+s_z[i,j,k]*moment_visualization_scale_factor], color = plot_color)
 
 
 plt.show()
