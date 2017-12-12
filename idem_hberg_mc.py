@@ -371,7 +371,7 @@ class SpinLattice(object):
 		random_ijk_list = self.random_ijk_list
 		
 		#write the header to the status file
-		f = open(str(self.file_prefix+str(int(start_time))+'_x='+str(self.iron_doping_level)+'_L='+str(self.edge_length) + "_run_status"),'w')
+		f = open(str(self.file_prefix+str(int(start_time))+'_x='+str(self.iron_doping_level)+'_L='+str(self.edge_length) + "_run_status.txt"),'w')
 		f.write(str('x='+str(self.iron_doping_level)+' L='+str(self.edge_length)+"\n"))
 		f.write("temperature (K), elapsed time (s), energy per site (K)\n")
 		f.close()
