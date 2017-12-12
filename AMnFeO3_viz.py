@@ -26,7 +26,7 @@ x = "0.2"
 
 L = "8"
 
-file_prefix = file_time+"_x="+x+"_L="+L
+file_prefix = ""+file_time+"_x="+x+"_L="+L
 
 x = float(x)
 
@@ -196,4 +196,22 @@ axarr[2, 2].text(np.max(temperature_sweep_array)/2.0, (np.sqrt(G_mean_temperatur
 axarr[2, 2].legend()
 
 plt.suptitle('edge_length='+str(L)+', iron_doping_level='+str(x))
+
+if 1: #should each 3d map of the spins be drawn?
+	moment_visualization_scale_factor = 0.5
+	fig = plt.figure()
+	ax = fig.add_subplot(111, projection='3d')
+
+	#plot solution
+	for i in range(0,edge_length):
+		for j in range(0,edge_length):
+			for k in range(0,edge_length):
+				if (i+j+k)%2 == 0:
+					plot_color = 'black'
+				else:
+					plot_color = 'red'
+				ax.scatter(i, j, k, color = plot_color, marker='o')
+				ax.plot([i,i+s_x[i,j,k]*moment_visualization_scale_factor], [j,j+s_y[i,j,k]*moment_visualization_scale_factor], [k,k+s_z[i,j,k]*moment_visualization_scale_factor], color = plot_color)
+
+
 plt.show()

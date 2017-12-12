@@ -178,13 +178,27 @@ class SpinLattice(object):
 		super_exchange_ijk = superexchange_array[i,j,k] #np.array([0,0,0,0,0,0])
 		atom_type_ijk = atom_type[i,j,k]
 		
-		if self.superexchange == -1:
+		if self.superexchange == -3: #pseudo-experimental values
 			JFeFeb = 62.0
 			JFeFeac = 62.0
 			JMnMnb = 6.7
 			JMnMnac = -9.6
 			JMnFeb = 17.0
 			JMnFeac = 29.0
+		if self.superexchange == -2: #Nd DFT values
+			JFeFeb = 46.3
+			JFeFeac = 51.3
+			JMnMnb = 3.13
+			JMnMnac = -0.58
+			JMnFeb = 7.54
+			JMnFeac = 35.742
+		if self.superexchange == -1: #La DFT values
+			JFeFeb = 47.6
+			JFeFeac = 53.0
+			JMnMnb = -3.01
+			JMnMnac = 3.133
+			JMnFeb = 5.686
+			JMnFeac = 37.36
 		else:
 			JFeFeb = self.superexchange[0]
 			JFeFeac = self.superexchange[1]
@@ -294,6 +308,45 @@ class SpinLattice(object):
 					
 
 		return s_x, s_y, s_z, phi, theta, energy
+	def init_arrays_double_perovskite(self):
+		iron_doping_level = self.iron_doping_level
+		edge_length, s_x, s_y, s_z, s_max, phi, theta, energy, atom_type = self.edge_length, self.s_x, self.s_y, self.s_z, self.s_max, self.phi, self.theta, self.energy, self.atom_type
+		single_ion_anisotropy, single_ion_anisotropy_0, single_ion_anisotropy_1 = self.single_ion_anisotropy, self.single_ion_anisotropy_0, self.single_ion_anisotropy_1
+		superexchange_array = self.superexchange_array
+		s_max_0, s_max_1 = self.s_max_0, self.s_max_1
+		superexchange_array_calc = self.superexchange_array_calc
+		single_ion_anisotropy_list = [single_ion_anisotropy_0, single_ion_anisotropy_1]
+		s_max_list = [s_max_0, s_max_1]
+		#initialize the spin momentum vectors to have a random direction
+		for i in range(0,edge_length):
+			for j in range(0,edge_length):
+				for k in range(0,edge_length):
+					if (i+j+k)%2 == 0:
+						atom_type[i,j,k] = 0
+					else:
+						atom_type[i,j,k] = 1
+					#print(atom_type[i,j,k])
+					#print(single_ion_anisotropy_list[atom_type[i,j,k]])
+					single_ion_anisotropy[i,j,k] = single_ion_anisotropy_list[atom_type[i,j,k]]
+					s_max[i,j,k] = s_max_list[atom_type[i,j,k]]
+					
+					
+					
+					phi[i,j,k] = np.random.rand()*2*np.pi
+					theta[i,j,k] = np.arccos(1.0-2.0*np.random.rand())# asdf
+					s_x[i,j,k] = s_max[i,j,k]*np.sin(theta[i,j,k])*np.cos(phi[i,j,k])
+					s_y[i,j,k] = s_max[i,j,k]*np.sin(theta[i,j,k])*np.sin(phi[i,j,k])
+					s_z[i,j,k] = s_max[i,j,k]*np.cos(theta[i,j,k])
+					energy[i,j,k] = self.energy_calc_simple((theta[i,j,k],phi[i,j,k]),i,j,k)
+					
+		for i in range(0,edge_length):
+			for j in range(0,edge_length):
+				for k in range(0,edge_length):					
+					superexchange_array[i,j,k] = superexchange_array_calc(i,j,k)
+		#print('superexchange_array',superexchange_array)
+					
+
+		return s_x, s_y, s_z, phi, theta, energy		
 	def negative_of_energy_calc(self, x, super_exchange_field):
 		return -self.energy_calc(x,super_exchange_field)
 	def total_energy_calc(self):

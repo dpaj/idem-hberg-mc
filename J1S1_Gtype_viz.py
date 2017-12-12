@@ -18,10 +18,12 @@ file_time = "1511286842" #x=0.0, L=8, D=[-4,0,0]
 file_time = "1511289179"
 file_time = "1511289327"
 file_time = "1511285366"
+file_time = "1512512874"
+#file_time = "1512512892"
 
 x = "0.0"
 
-L = "8"
+L = "10"
 
 file_prefix = "J1S1_"+file_time+"_x="+x+"_L="+L
 
@@ -115,7 +117,7 @@ A_temperature_sweep_array_slice_manypoints = np.linspace(A_fit_temperature_min, 
 
 xfit = spop.optimize.fmin(op_fit, \
 					maxfun=5000, maxiter=5000, ftol=1e-6, xtol=1e-5,\
-					x0=(1.0, 1.8, 0.333), args = (G_temperature_sweep_array_slice, G_tot_mean_temperature_array_slice), disp=1)
+					x0=(1.0, 1.5, 0.333), args = (G_temperature_sweep_array_slice, G_tot_mean_temperature_array_slice), disp=1)
 
 g_arbitrary_scale_factor = xfit[0]
 g_T_N = xfit[1]
@@ -132,7 +134,7 @@ axarr[0, 0].set_title('energy equilibrations')
 
 #axarr[0, 1].plot(temperature_sweep_array, E_mean_temperature_array)
 axarr[0, 1].plot(temperature_sweep_array, E_std_temperature_array**2/temperature_sweep_array**2)
-#axarr[0, 1].plot(temperature_sweep_array, np.gradient(E_mean_temperature_array))
+axarr[0, 1].plot(temperature_sweep_array, -np.gradient(E_mean_temperature_array))
 
 axarr[0, 2].plot(temperature_sweep_array, nn_pair_corr_abs_abc_mean_temperature_array,label='|a|+|b|+|c|')
 #plt.plot(temperature_sweep_array, nn_pair_corr_abs_abc_std_temperature_array)
@@ -206,7 +208,7 @@ else:
 
 plt.suptitle('file_prefix='+str(file_prefix+file_time)+'edge_length='+str(L)+', iron_doping_level='+str(x)+', steps_to_burn'+str(steps_to_burn))
 
-if 1: #should each 3d map of the spins be drawn?
+if 0: #should each 3d map of the spins be drawn?
 	moment_visualization_scale_factor = 0.5
 	fig = plt.figure()
 	ax = fig.add_subplot(111, projection='3d')
