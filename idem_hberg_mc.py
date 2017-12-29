@@ -185,14 +185,14 @@ class SpinLattice(object):
 			JMnMnac = -9.6
 			JMnFeb = 17.0
 			JMnFeac = 29.0
-		if self.superexchange == -2: #Nd DFT values
+		elif self.superexchange == -2: #Nd DFT values
 			JFeFeb = 46.3
 			JFeFeac = 51.3
 			JMnMnb = 3.13
 			JMnMnac = -0.58
 			JMnFeb = 7.54
 			JMnFeac = 35.742
-		if self.superexchange == -1: #La DFT values
+		elif self.superexchange == -1: #La DFT values
 			JFeFeb = 47.6
 			JFeFeac = 53.0
 			JMnMnb = -3.01
