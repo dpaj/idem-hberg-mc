@@ -11,9 +11,9 @@ print(time()-start_time)
 #to use the experimental values for La and old DFT for MnFe, just put -3
 	
 my_lattice = SpinLattice(\
-iron_doping_level=1.0, edge_length = 8, s_max_0 = 2.5, s_max_1 = 2.0, \
-single_ion_anisotropy_0 = np.array([0,0,-0.01]), single_ion_anisotropy_1 = np.array([-4.0,0,0.0]), superexchange = -1, \
-magnetic_field = np.array([0,0,0]), file_prefix = "AMnFeO3_")
+iron_doping_level=0.5, edge_length = 22, s_max_0 = 2.5, s_max_1 = 2.0, \
+single_ion_anisotropy_0 = np.array([0,0,-0.0]), single_ion_anisotropy_1 = np.array([-0.0,0,0.0]), superexchange = -2, \
+magnetic_field = np.array([0,0,0]), file_prefix = "NMFO_D_0_DubPerov_")
 if 0:
 	#this is the solid solution
 	my_lattice.init_arrays()
