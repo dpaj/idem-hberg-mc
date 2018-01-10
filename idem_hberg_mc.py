@@ -29,10 +29,14 @@ class SpinLattice(object):
 	
 	iron_doping_level = varies from 0 to 1, 0 is no iron, is set for a given SpinLattice object
 	edge_length = the simulation is the edge of a cube with periodic boundary conditions, and this is just the number of sites per side
-	single_ion_anisotropy = this is the 6-d array, where the first three dimensions correspond to indexation of sites within the simulated lattice, and the final three dimensions house the direction and strength of the single ion anisotropy for a given site
 	
-	single_ion_anisotropy_0 = the is the 3-d array that holds the strength and direction of the iron single ion anisotropy
-	single_ion_anisotropy_1 = the 3-d array that holds the strength and direction of the manganese single ion anisotropy
+	single_ion_anisotorpy_len = this is the 3-d array that holds the length (strength) and sign of the single-ion anisotropy
+	single_ion_anisotropy_hat = this is the 6-d array, where the first three dimensions correspond to indexation of sites within the simulated lattice, and the final three dimensions house the direction of the single ion anisotropy for a given site
+	
+	single_ion_anisotropy_len_0 = the scalar that holds the strength and direction of the iron single ion anisotropy
+	single_ion_anisotropy_len_1 = the scalar that holds the strength and direction of the manganese single ion anisotropy
+	single_ion_anisotropy_hat_0 = the 3-d array that holds the strength and direction of the iron single ion anisotropy
+	single_ion_anisotropy_hat_1 = the 3-d array that holds the strength and direction of the manganese single ion anisotropy
 	
 	s_max_0 = the double that holds the maximum spin value of the iron spin
 	s_max_1 = the double that holds the maximum spin value of the manganese spin
@@ -52,12 +56,15 @@ class SpinLattice(object):
 
 
 	"""
-	def __init__(self, edge_length=None, iron_doping_level=None, s_max_0=None, s_max_1=None, single_ion_anisotropy_0 = None, single_ion_anisotropy_1 = None, single_ion_anisotropy=None, superexchange=None, magnetic_field=None, s_x=None, s_y=None, s_z=None, phi=None, theta=None, energy=None, total_energy=None, random_ijk_array=None,temporary_nn_pair_corr=None, atom_type=None, file_prefix=""):
+	def __init__(self, edge_length=None, iron_doping_level=None, s_max_0=None, s_max_1=None, single_ion_anisotropy_hat_0 = None, single_ion_anisotropy_hat_1 = None, single_ion_anisotropy_hat=None,single_ion_anisotropy_len_0 = None, single_ion_anisotropy_len_1 = None, single_ion_anisotropy_len=None, superexchange=None, magnetic_field=None, s_x=None, s_y=None, s_z=None, phi=None, theta=None, energy=None, total_energy=None, random_ijk_array=None,temporary_nn_pair_corr=None, atom_type=None, file_prefix="", anisotropy_symmetry=0):
 		self.iron_doping_level = iron_doping_level
 		self.edge_length = edge_length
-		self.single_ion_anisotropy = np.zeros((edge_length,edge_length,edge_length,3))
-		self.single_ion_anisotropy_0 = single_ion_anisotropy_0
-		self.single_ion_anisotropy_1 = single_ion_anisotropy_1
+		self.single_ion_anisotropy_hat = np.zeros((edge_length,edge_length,edge_length,3))
+		self.single_ion_anisotropy_len = np.zeros((edge_length,edge_length,edge_length))
+		self.single_ion_anisotropy_hat_0 = single_ion_anisotropy_hat_0
+		self.single_ion_anisotropy_hat_1 = single_ion_anisotropy_hat_1
+		self.single_ion_anisotropy_len_0 = single_ion_anisotropy_len_0
+		self.single_ion_anisotropy_len_1 = single_ion_anisotropy_len_1
 		self.s_max_0 = s_max_0
 		self.s_max_1 = s_max_1
 		self.g_type_mask = np.zeros((edge_length,edge_length,edge_length))
@@ -81,6 +88,7 @@ class SpinLattice(object):
 		self.temporary_nn_pair_corr = 0
 		self.atom_type = np.zeros((edge_length,edge_length,edge_length), dtype = np.int8)
 		self.file_prefix = file_prefix
+		self.anisotropy_symmetry = anisotropy_symmetry
 		
 	def __str__(self):
 		return "SpinLattice"
@@ -88,8 +96,10 @@ class SpinLattice(object):
 		return self.edge_length
 	def get_s_max(self):
 		return self.s_max
-	def get_single_ion_anisotropy(self):
-		return self.single_ion_anisotropy
+	def get_single_ion_anisotropy_len(self):
+		return self.single_ion_anisotropy_len
+	def get_single_ion_anisotropy_hat(self):
+		return self.single_ion_anisotropy_hat
 	def get_superexchange(self):
 		return self.superexchange
 	def get_magnetic_field(self):
@@ -108,7 +118,7 @@ class SpinLattice(object):
 		return self.energy
 
 
-	def energy_calc(self, x, super_exchange_field, single_ion_anisotropy_ijk, s_max_ijk):
+	def energy_calc(self, x, super_exchange_field, single_ion_anisotropy_len_ijk, single_ion_anisotropy_hat_ijk, s_max_ijk):
 		
 		#s_max = self.s_max
 		#print(s_max)
@@ -118,7 +128,7 @@ class SpinLattice(object):
 		s_z_ijk = s_max_ijk*np.cos(theta)
 		s_vec_ijk = np.array([s_x_ijk, s_y_ijk, s_z_ijk])
 		
-		energy_ijk = np.dot(super_exchange_field, s_vec_ijk) + s_x_ijk**2*single_ion_anisotropy_ijk[0] + s_y_ijk**2*single_ion_anisotropy_ijk[1] + s_z_ijk**2*single_ion_anisotropy_ijk[2]
+		energy_ijk = np.dot(super_exchange_field, s_vec_ijk) + single_ion_anisotropy_len_ijk*np.dot(single_ion_anisotropy_hat_ijk, s_vec_ijk)**2
 		
 		return energy_ijk
 	def energy_calc_simple(self, x, i, j, k):
@@ -136,9 +146,14 @@ class SpinLattice(object):
 		#superexchange = self.superexchange
 		superexchange_array = self.superexchange_array
 		superexchange = superexchange_array[i,j,k]
-		single_ion_anisotropy = self.single_ion_anisotropy
+		single_ion_anisotropy_len = self.single_ion_anisotropy_len
+		single_ion_anisotropy_hat = self.single_ion_anisotropy_hat
+		#print(single_ion_anisotropy_hat[i,j,k])
+		#exit()
+		#print(single_ion_anisotropy_len[i,j,k]*np.dot(single_ion_anisotropy_hat[i,j,k], s_vec)**2)
+		
 
-		energy_ijk += np.dot(single_ion_anisotropy[i,j,k], s_vec)
+		energy_ijk += single_ion_anisotropy_len[i,j,k]*np.dot(single_ion_anisotropy_hat[i,j,k], s_vec)**2
 
 		if i < edge_length-1:
 			energy_ijk += superexchange[0]*(s_x_ijk*s_x[i+1,j,k] + s_y_ijk*s_y[i+1,j,k] + s_z_ijk*s_z[i+1,j,k])
@@ -177,8 +192,25 @@ class SpinLattice(object):
 		superexchange_array = self.superexchange_array
 		super_exchange_ijk = superexchange_array[i,j,k] #np.array([0,0,0,0,0,0])
 		atom_type_ijk = atom_type[i,j,k]
-		
-		if self.superexchange == -3: #pseudo-experimental values
+
+
+
+
+		if self.superexchange == -5: #extrapolated values for Nd
+			JFeFeb = 5.93*11.605
+			JFeFeac = 6.57*11.605
+			JMnMnb = 1.55*11.605
+			JMnMnac = -1.31*11.605
+			JMnFeb = 0.87*11.605
+			JMnFeac = 4.16*11.605
+		elif self.superexchange == -4: #extrapolated values for La
+			JFeFeb = 6.34*11.605
+			JFeFeac = 7.05*11.605
+			JMnMnb = 1.55*11.605
+			JMnMnac = -2.12*11.605
+			JMnFeb = 0.66*11.605
+			JMnFeac = 4.35*11.605			
+		elif self.superexchange == -3: #pseudo-experimental values
 			JFeFeb = 62.0
 			JFeFeac = 62.0
 			JMnMnb = 6.7
@@ -273,13 +305,16 @@ class SpinLattice(object):
 		return super_exchange_ijk
 		
 	def init_arrays(self):
+		anisotropy_symmetry = self.anisotropy_symmetry
 		iron_doping_level = self.iron_doping_level
 		edge_length, s_x, s_y, s_z, s_max, phi, theta, energy, atom_type = self.edge_length, self.s_x, self.s_y, self.s_z, self.s_max, self.phi, self.theta, self.energy, self.atom_type
-		single_ion_anisotropy, single_ion_anisotropy_0, single_ion_anisotropy_1 = self.single_ion_anisotropy, self.single_ion_anisotropy_0, self.single_ion_anisotropy_1
+		single_ion_anisotropy_hat, single_ion_anisotropy_hat_0, single_ion_anisotropy_hat_1 = self.single_ion_anisotropy_hat, self.single_ion_anisotropy_hat_0, self.single_ion_anisotropy_hat_1
+		single_ion_anisotropy_len, single_ion_anisotropy_len_0, single_ion_anisotropy_len_1 = self.single_ion_anisotropy_len, self.single_ion_anisotropy_len_0, self.single_ion_anisotropy_len_1
 		superexchange_array = self.superexchange_array
 		s_max_0, s_max_1 = self.s_max_0, self.s_max_1
 		superexchange_array_calc = self.superexchange_array_calc
-		single_ion_anisotropy_list = [single_ion_anisotropy_0, single_ion_anisotropy_1]
+		single_ion_anisotropy_hat_list = [single_ion_anisotropy_hat_0, single_ion_anisotropy_hat_1]
+		single_ion_anisotropy_len_list = [single_ion_anisotropy_len_0, single_ion_anisotropy_len_1]
 		s_max_list = [s_max_0, s_max_1]
 		#initialize the spin momentum vectors to have a random direction
 		for i in range(0,edge_length):
@@ -287,8 +322,17 @@ class SpinLattice(object):
 				for k in range(0,edge_length):
 					atom_type[i,j,k] = int(np.random.choice([0,1],p=[iron_doping_level, 1.0-iron_doping_level]))
 					#print(atom_type[i,j,k])
-					#print(single_ion_anisotropy_list[atom_type[i,j,k]])
-					single_ion_anisotropy[i,j,k] = single_ion_anisotropy_list[atom_type[i,j,k]]
+					#print(single_ion_anisotropy_hat_list[atom_type[i,j,k]])
+					if anisotropy_symmetry == 0:
+						single_ion_anisotropy_hat[i,j,k] = single_ion_anisotropy_hat_list[atom_type[i,j,k]]
+						single_ion_anisotropy_len[i,j,k] = single_ion_anisotropy_len_list[atom_type[i,j,k]]
+					elif anisotropy_symmetry == "Pnma":
+						single_ion_anisotropy_hat[i,j,k] = single_ion_anisotropy_hat_list[atom_type[i,j,k]]
+						single_ion_anisotropy_len[i,j,k] = single_ion_anisotropy_len_list[atom_type[i,j,k]]
+						if (j % 2) == 0:
+							single_ion_anisotropy_hat[i,j,k][1] = -single_ion_anisotropy_hat[i,j,k][1]
+						if ((i+k)%2) == 0:
+							single_ion_anisotropy_hat[i,j,k][0] = -single_ion_anisotropy_hat[i,j,k][0]
 					s_max[i,j,k] = s_max_list[atom_type[i,j,k]]
 					
 					
@@ -309,13 +353,16 @@ class SpinLattice(object):
 
 		return s_x, s_y, s_z, phi, theta, energy
 	def init_arrays_double_perovskite(self):
+		anisotropy_symmetry = self.anisotropy_symmetry
 		iron_doping_level = self.iron_doping_level
 		edge_length, s_x, s_y, s_z, s_max, phi, theta, energy, atom_type = self.edge_length, self.s_x, self.s_y, self.s_z, self.s_max, self.phi, self.theta, self.energy, self.atom_type
-		single_ion_anisotropy, single_ion_anisotropy_0, single_ion_anisotropy_1 = self.single_ion_anisotropy, self.single_ion_anisotropy_0, self.single_ion_anisotropy_1
+		single_ion_anisotropy_hat, single_ion_anisotropy_hat_0, single_ion_anisotropy_hat_1 = self.single_ion_anisotropy_hat, self.single_ion_anisotropy_hat_0, self.single_ion_anisotropy_hat_1
+		single_ion_anisotropy_len, single_ion_anisotropy_len_0, single_ion_anisotropy_len_1 = self.single_ion_anisotropy_len, self.single_ion_anisotropy_len_0, self.single_ion_anisotropy_len_1
 		superexchange_array = self.superexchange_array
 		s_max_0, s_max_1 = self.s_max_0, self.s_max_1
 		superexchange_array_calc = self.superexchange_array_calc
-		single_ion_anisotropy_list = [single_ion_anisotropy_0, single_ion_anisotropy_1]
+		single_ion_anisotropy_hat_list = [single_ion_anisotropy_hat_0, single_ion_anisotropy_hat_1]
+		single_ion_anisotropy_len_list = [single_ion_anisotropy_len_0, single_ion_anisotropy_len_1]
 		s_max_list = [s_max_0, s_max_1]
 		#initialize the spin momentum vectors to have a random direction
 		for i in range(0,edge_length):
@@ -326,8 +373,17 @@ class SpinLattice(object):
 					else:
 						atom_type[i,j,k] = 1
 					#print(atom_type[i,j,k])
-					#print(single_ion_anisotropy_list[atom_type[i,j,k]])
-					single_ion_anisotropy[i,j,k] = single_ion_anisotropy_list[atom_type[i,j,k]]
+					#print(single_ion_anisotropy_hat_list[atom_type[i,j,k]])
+					if anisotropy_symmetry == 0:
+						single_ion_anisotropy_hat[i,j,k] = single_ion_anisotropy_hat_list[atom_type[i,j,k]]
+						single_ion_anisotropy_len[i,j,k] = single_ion_anisotropy_len_list[atom_type[i,j,k]]
+					elif anisotropy_symmetry == "Pnma":
+						single_ion_anisotropy_hat[i,j,k] = single_ion_anisotropy_hat_list[atom_type[i,j,k]]
+						single_ion_anisotropy_len[i,j,k] = single_ion_anisotropy_len_list[atom_type[i,j,k]]
+						if (j % 2) == 0:
+							single_ion_anisotropy_hat[i,j,k][1] = -single_ion_anisotropy_hat[i,j,k][1]
+						if ((i+k)%2) == 0:
+							single_ion_anisotropy_hat[i,j,k][0] = -single_ion_anisotropy_hat[i,j,k][0]
 					s_max[i,j,k] = s_max_list[atom_type[i,j,k]]
 					
 					
@@ -367,7 +423,8 @@ class SpinLattice(object):
 		s_x = self.s_x
 		s_y = self.s_y
 		s_z = self.s_z
-		single_ion_anisotropy = self.single_ion_anisotropy
+		single_ion_anisotropy_hat = self.single_ion_anisotropy_hat
+		single_ion_anisotropy_len = self.single_ion_anisotropy_len
 		random_ijk_list = self.random_ijk_list
 		
 		#write the header to the status file
@@ -397,6 +454,8 @@ class SpinLattice(object):
 		G_temperature_array = np.zeros((3,3,temperature_steps, equilibration_steps)) #the first "3" is for total, Fe, or Mn, and the second "3" is for the x,y,z components
 		
 		print("sweeping temperature...")
+		#print(single_ion_anisotropy_hat)
+		#print(single_ion_anisotropy_len)
 		for temperature_index, temperature in enumerate(temperature_sweep_array):
 			print("\ntemperature=",temperature)
 			for equilibration_index in range(equilibration_steps):
@@ -405,7 +464,8 @@ class SpinLattice(object):
 					#i want to not call the ijk every time when i'm getting spin positions and such
 					i,j,k = ijk[0], ijk[1], ijk[2]
 					s_max_ijk = s_max[i,j,k]
-					single_ion_anisotropy_ijk = single_ion_anisotropy[i,j,k]
+					single_ion_anisotropy_hat_ijk = single_ion_anisotropy_hat[i,j,k]
+					single_ion_anisotropy_len_ijk = single_ion_anisotropy_len[i,j,k]
 					
 					#calculate the super_exchange_field for the site in the coordinate system of the lattice
 					super_exchange_field_c = super_exchange_field_calc(i,j,k)
@@ -415,15 +475,15 @@ class SpinLattice(object):
 					
 					#calculate the minimum positions of theta and phi for the site in the lattice coordinate system
 					theta_min_c, phi_min_c = spop.optimize.fmin(energy_calc, \
-					maxfun=5000, maxiter=5000, ftol=1e-6, xtol=1e-5, x0=(theta[i,j,k], phi[i,j,k]), args = (super_exchange_field_c,single_ion_anisotropy_ijk,s_max_ijk), disp=0)
+					maxfun=5000, maxiter=5000, ftol=1e-6, xtol=1e-5, x0=(theta[i,j,k], phi[i,j,k]), args = (super_exchange_field_c,single_ion_anisotropy_len_ijk,single_ion_anisotropy_hat_ijk,s_max_ijk), disp=0)
 					
 					#move to the frame in which the minimum energy position is along the z-axis 
 					super_exchange_field_r = np.dot(my_rot_mat(theta_min_c, phi_min_c), super_exchange_field_c)
-					single_ion_anisotropy_ijk_r = np.dot(my_rot_mat(theta_min_c, phi_min_c), single_ion_anisotropy_ijk)
+					single_ion_anisotropy_hat_ijk_r = np.dot(my_rot_mat(theta_min_c, phi_min_c), single_ion_anisotropy_hat_ijk)
 					phi_thermal_r = random.random()*2*np.pi #phi is completely random in the rotated frame
 					
 					#make a list of energies to choose from when applying the Boltzmann statistics
-					E_r_list = energy_calc((spaced_theta_values, phi_thermal_r),super_exchange_field_r,single_ion_anisotropy_ijk_r,s_max_ijk)
+					E_r_list = energy_calc((spaced_theta_values, phi_thermal_r),super_exchange_field_r,single_ion_anisotropy_len_ijk,single_ion_anisotropy_hat_ijk_r,s_max_ijk)
 					E_r_list = np.add(E_r_list, -np.min(E_r_list)) #the energies are always less than zero, so we add the negative of the minimum to avoid large numbers in Boltzmann factor
 					
 					#from the list of energies, apply Boltzmann statistics to get the probability of each angle, and normalize
@@ -445,7 +505,7 @@ class SpinLattice(object):
 					
 					theta_thermal_c = np.arccos(s_z_thermal_c / np.sqrt(s_x_thermal_c**2 + s_y_thermal_c**2 +s_z_thermal_c**2))
 					phi_thermal_c = -np.arctan2(s_y_thermal_c, s_x_thermal_c)
-					energy_thermal_c = energy_calc((theta_thermal_c, phi_thermal_c),super_exchange_field_c,single_ion_anisotropy_ijk,s_max_ijk)
+					energy_thermal_c = energy_calc((theta_thermal_c, phi_thermal_c),super_exchange_field_c,single_ion_anisotropy_len_ijk,single_ion_anisotropy_hat_ijk,s_max_ijk)
 					
 					#update the SpinLattice parameters for the given site with the thermalized values for that equilibration step
 					phi[i,j,k] = phi_thermal_c
@@ -453,7 +513,7 @@ class SpinLattice(object):
 					s_x[i,j,k] = s_max_ijk*np.sin(theta[i,j,k])*np.cos(phi[i,j,k])
 					s_y[i,j,k] = s_max_ijk*np.sin(theta[i,j,k])*np.sin(phi[i,j,k])
 					s_z[i,j,k] = s_max_ijk*np.cos(theta[i,j,k])
-					energy[i,j,k] = energy_calc((theta[i,j,k],phi[i,j,k]),super_exchange_field_c,single_ion_anisotropy_ijk,s_max_ijk)
+					energy[i,j,k] = energy_calc((theta[i,j,k],phi[i,j,k]),super_exchange_field_c,single_ion_anisotropy_len_ijk,single_ion_anisotropy_hat_ijk,s_max_ijk)
 							
 				#store the energies for each equilibration step, indexed by temperature
 				E_temperature_array[temperature_index, equilibration_index] = np.sum(energy)/edge_length**3 #((temperature_steps, equilibration_steps))
@@ -849,7 +909,7 @@ class SpinLattice(object):
 						else:
 							number_of_mn_fe = number_of_mn_fe + 1
 		number_of_mn_mn, number_of_fe_fe, number_of_mn_fe = number_of_mn_mn/2.0, number_of_fe_fe/2.0, number_of_mn_fe/2.0
-		print(number_of_mn_mn, number_of_fe_fe, number_of_mn_fe)
+		print("number_of_mn_mn, number_of_fe_fe, number_of_mn_fe",number_of_mn_mn, number_of_fe_fe, number_of_mn_fe)
 class PairCorrelation(object):
 	""" this class is defined to house the pair correlations
 	nn_pair_corrxa, nn_pair_corrya, nn_pair_corrza,

@@ -20,11 +20,16 @@ def op_fit(x, temperature_sweep_array_slice, A_tot_mean_temperature_array_slice)
 #file_time = "1511139324" #x=1.0, L = 4
 file_time = "1511199490" #x=0.0, L=4
 file_time = "1511203710" #x=0.2, L=4
-file_time = "1511206412" #x=0.2, L=8
+file_time = "NMFO_D_0_DubPerov_1515532606" #x=0.2, L=8
+file_time = "NMFO_D_0_DubPerov_1515554668" #x=0.2, L=8
 
-x = "0.2"
 
-L = "8"
+
+x = "0.5"
+
+L = "4"
+
+edge_length = int(L)
 
 file_prefix = ""+file_time+"_x="+x+"_L="+L
 
@@ -197,7 +202,7 @@ axarr[2, 2].legend()
 
 plt.suptitle('edge_length='+str(L)+', iron_doping_level='+str(x))
 
-if 1: #should each 3d map of the spins be drawn?
+if 0: #should each 3d map of the spins be drawn?
 	moment_visualization_scale_factor = 0.5
 	fig = plt.figure()
 	ax = fig.add_subplot(111, projection='3d')
