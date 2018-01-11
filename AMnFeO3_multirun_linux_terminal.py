@@ -86,8 +86,11 @@ temperature_steps=51
 equilibration_steps=200
 number_of_angle_states=100
 magnetic_field=np.array([0.0,0.0,0.0]))
+edge_length = 6
 
-
+x_values_to_run = [0.0,0.1,0.2,0.3,0.4,0.5,0.6,0.7,0.8,0.9,1.0]
+max_temperatures_to_run = [
+min_temperatures_to_run
 
 exit()
 
