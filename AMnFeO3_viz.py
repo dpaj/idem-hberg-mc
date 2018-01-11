@@ -3,6 +3,9 @@ import numpy as np
 from mpl_toolkits.mplot3d import Axes3D
 import matplotlib.pyplot as plt
 import scipy.optimize as spop
+import os
+import re
+
 
 def op_fit(x, temperature_sweep_array_slice, A_tot_mean_temperature_array_slice):
 	#fit an arbitrary scale factor, T_N, and beta
@@ -12,35 +15,67 @@ def op_fit(x, temperature_sweep_array_slice, A_tot_mean_temperature_array_slice)
 	residuals = np.sum(( A_tot_mean_temperature_array_slice - np.multiply(arbitrary_scale_factor,np.power((np.divide(-temperature_sweep_array_slice+T_N, T_N)),beta)) )**2)
 	return residuals
 
-#file_time = "1510970159" #x =0.0, L = 4
-#file_time = "1510970392" #x =1.0, L = 4
-#file_time = "1510970584" #x = 0.2, L = 4
-#file_time = "1510973615" #x=0.2, L = 8
-#file_time = "1510974914" #x=0.0, L = 8
-#file_time = "1511139324" #x=1.0, L = 4
-file_time = "1511199490" #x=0.0, L=4
-file_time = "1511203710" #x=0.2, L=4
-file_time = "NMFO_D_0_DubPerov_1515532606" #x=0.2, L=8
-file_time = "NMFO_D_0_DubPerov_1515554668" #x=0.2, L=8
+files = os.listdir('.')
 
+incomplete = []
+complete = []
+for i in files:
+        if (re.search('A_tempe', i)):
+                complete.append(i)
+        elif (re.search('run_status', i)):
+                incomplete.append(i)
 
+print("***incomplete files:")
+[print(i) for i in incomplete]
+print("***complete files:")
+[print(i,j) for i,j in enumerate(complete)]
+myfile = '999'
+while myfile == '999':
+        myfile = raw_input("pick a complete file to view:")
+        if int(myfile) < len(complete):
+                myfile = int(myfile)
+        else:
+                myfile = '999'
 
-x = "0.5"
+file_prefix = complete[int(myfile)][:-24]
 
-L = "4"
+print(file_prefix)
+
+L = int(file_prefix.split('L=')[1])
+x = float(file_prefix.split('x=')[1][:3])
+
+print("x=",x,",L=",L)
+
+if raw_input("use non-default parameters for burn and fit temperatures?"):
+        steps_to_burn = raw_input("steps to burn?")
+        A_fit_temperature_min = raw_input("A fit temperature min?")
+        A_fit_temperature_max = raw_input("A fit temperature max?")
+        G_fit_temperature_min = raw_input("G fit temperature min?")
+        G_fit_temperature_max = raw_input("G fit temperature max?")
+else:
+        print('default parameters in the AMnFeO3_viz.default being used')
+        with open("AMnFeO3_viz.default") as file:
+                for line in file:
+                        if re.search('steps_to_burn', line):
+                                steps_to_burn = int(line.split('=')[1])
+                        if re.search('A_fit_temperature_min', line):
+                                A_fit_temperature_min = int(line.split('=')[1])
+                        if re.search('A_fit_temperature_max', line):
+                                A_fit_temperature_max = int(line.split('=')[1])
+                        if re.search('G_fit_temperature_min', line):
+                                G_fit_temperature_min = int(line.split('=')[1])
+                        if re.search('G_fit_temperature_max', line):
+                                G_fit_temperature_max = int(line.split('=')[1])
+
+print("steps to burn", steps_to_burn)
+print("A fit temperature min", A_fit_temperature_min)
+print("A fit temperature max", A_fit_temperature_max)
+print("G fit temperature min", G_fit_temperature_min)
+print("G fit temperature max", G_fit_temperature_max)
 
 edge_length = int(L)
 
-file_prefix = ""+file_time+"_x="+x+"_L="+L
-
 x = float(x)
-
-steps_to_burn = 10
-
-A_fit_temperature_min = 20
-A_fit_temperature_max = 50
-G_fit_temperature_min = 50
-G_fit_temperature_max = 200
 
 temperature_sweep_array = np.load(file_prefix+"_temperature_sweep_array.npy")
 
