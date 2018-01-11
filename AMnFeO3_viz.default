@@ -1,0 +1,6 @@
+steps_to_burn = 25
+
+A_fit_temperature_min = 20
+A_fit_temperature_max = 50
+G_fit_temperature_min = 50
+G_fit_temperature_max = 200
