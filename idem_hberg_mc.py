@@ -457,6 +457,7 @@ class SpinLattice(object):
 		nn_pair_corr_b_temperature_array = np.zeros((temperature_steps, equilibration_steps))
 		
 		A_temperature_array = np.zeros((3,3,temperature_steps, equilibration_steps)) #the first "3" is for total, Fe, or Mn, and the second "3" is for the x,y,z components
+		B_temperature_array = np.zeros((3,3,temperature_steps, equilibration_steps)) #the first "3" is for total, Fe, or Mn, and the second "3" is for the x,y,z components
 		C_temperature_array = np.zeros((3,3,temperature_steps, equilibration_steps)) #the first "3" is for total, Fe, or Mn, and the second "3" is for the x,y,z components
 		G_temperature_array = np.zeros((3,3,temperature_steps, equilibration_steps)) #the first "3" is for total, Fe, or Mn, and the second "3" is for the x,y,z components
 		
@@ -527,9 +528,11 @@ class SpinLattice(object):
 				
 				#store the AF order parameters for each equilibration step, indexed by temperature
 				temp_a_x, temp_a_y, temp_a_z, temp_mn_a_x, temp_mn_a_y, temp_mn_a_z, temp_fe_a_x, temp_fe_a_y, temp_fe_a_z = np.divide(self.a_type_order_parameter_calc(), edge_length**3)
+				temp_b_x, temp_b_y, temp_b_z, temp_mn_b_x, temp_mn_b_y, temp_mn_b_z, temp_fe_b_x, temp_fe_b_y, temp_fe_b_z = np.divide(self.b_type_order_parameter_calc(), edge_length**3)
 				temp_g_x, temp_g_y, temp_g_z, temp_mn_g_x, temp_mn_g_y, temp_mn_g_z, temp_fe_g_x, temp_fe_g_y, temp_fe_g_z = np.divide(self.g_type_order_parameter_calc(), edge_length**3)
 				temp_c_x, temp_c_y, temp_c_z, temp_mn_c_x, temp_mn_c_y, temp_mn_c_z, temp_fe_c_x, temp_fe_c_y, temp_fe_c_z = np.divide(self.c_type_order_parameter_calc(), edge_length**3)
 				A_temperature_array[0,0,temperature_index, equilibration_index], A_temperature_array[0,1,temperature_index, equilibration_index], A_temperature_array[0,2,temperature_index, equilibration_index], A_temperature_array[1,0,temperature_index, equilibration_index], A_temperature_array[1,1,temperature_index, equilibration_index], A_temperature_array[1,2,temperature_index, equilibration_index], A_temperature_array[2,0,temperature_index, equilibration_index], A_temperature_array[2,1,temperature_index, equilibration_index], A_temperature_array[2,2,temperature_index, equilibration_index] = temp_a_x, temp_a_y, temp_a_z, temp_mn_a_x, temp_mn_a_y, temp_mn_a_z, temp_fe_a_x, temp_fe_a_y, temp_fe_a_z
+				B_temperature_array[0,0,temperature_index, equilibration_index], B_temperature_array[0,1,temperature_index, equilibration_index], B_temperature_array[0,2,temperature_index, equilibration_index], B_temperature_array[1,0,temperature_index, equilibration_index], B_temperature_array[1,1,temperature_index, equilibration_index], B_temperature_array[1,2,temperature_index, equilibration_index], B_temperature_array[2,0,temperature_index, equilibration_index], B_temperature_array[2,1,temperature_index, equilibration_index], B_temperature_array[2,2,temperature_index, equilibration_index] = temp_b_x, temp_b_y, temp_b_z, temp_mn_b_x, temp_mn_b_y, temp_mn_b_z, temp_fe_b_x, temp_fe_b_y, temp_fe_b_z
 				G_temperature_array[0,0,temperature_index, equilibration_index], G_temperature_array[0,1,temperature_index, equilibration_index], G_temperature_array[0,2,temperature_index, equilibration_index], G_temperature_array[1,0,temperature_index, equilibration_index], G_temperature_array[1,1,temperature_index, equilibration_index], G_temperature_array[1,2,temperature_index, equilibration_index], G_temperature_array[2,0,temperature_index, equilibration_index], G_temperature_array[2,1,temperature_index, equilibration_index], G_temperature_array[2,2,temperature_index, equilibration_index] = temp_g_x, temp_g_y, temp_g_z, temp_mn_g_x, temp_mn_g_y, temp_mn_g_z, temp_fe_g_x, temp_fe_g_y, temp_fe_g_z
 				C_temperature_array[0,0,temperature_index, equilibration_index], C_temperature_array[0,1,temperature_index, equilibration_index], C_temperature_array[0,2,temperature_index, equilibration_index], C_temperature_array[1,0,temperature_index, equilibration_index], C_temperature_array[1,1,temperature_index, equilibration_index], C_temperature_array[1,2,temperature_index, equilibration_index], C_temperature_array[2,0,temperature_index, equilibration_index], C_temperature_array[2,1,temperature_index, equilibration_index], C_temperature_array[2,2,temperature_index, equilibration_index] = temp_c_x, temp_c_y, temp_c_z, temp_mn_c_x, temp_mn_c_y, temp_mn_c_z, temp_fe_c_x, temp_fe_c_y, temp_fe_c_z
 				
@@ -569,6 +572,7 @@ class SpinLattice(object):
 			
 		np.save(str(self.file_prefix+str(int(start_time))+'_x='+str(self.iron_doping_level)+'_L='+str(self.edge_length) + "_E_temperature_array"), E_temperature_array)
 		np.save(str(self.file_prefix+str(int(start_time))+'_x='+str(self.iron_doping_level)+'_L='+str(self.edge_length) + "_A_temperature_array"), A_temperature_array)
+		np.save(str(self.file_prefix+str(int(start_time))+'_x='+str(self.iron_doping_level)+'_L='+str(self.edge_length) + "_B_temperature_array"), B_temperature_array)
 		np.save(str(self.file_prefix+str(int(start_time))+'_x='+str(self.iron_doping_level)+'_L='+str(self.edge_length) + "_C_temperature_array"), C_temperature_array)
 		np.save(str(self.file_prefix+str(int(start_time))+'_x='+str(self.iron_doping_level)+'_L='+str(self.edge_length) + "_G_temperature_array"), G_temperature_array)
 		np.save(str(self.file_prefix+str(int(start_time))+'_x='+str(self.iron_doping_level)+'_L='+str(self.edge_length) + "_nn_pair_corr_abs_abc_temperature_array"), nn_pair_corr_abs_abc_temperature_array)
@@ -860,6 +864,25 @@ class SpinLattice(object):
 		#print(a_x, a_y, a_z, mn_a_x, mn_a_y, mn_a_z)
 
 		return a_x, a_y, a_z, mn_a_x, mn_a_y, mn_a_z, fe_a_x, fe_a_y, fe_a_z
+		
+	def b_type_order_parameter_calc(self):
+		edge_length = self.edge_length
+		mn_b_type_mask = self.atom_type
+		fe_b_type_mask = 1-self.atom_type
+
+		b_x = np.sum(self.s_x)
+		b_y = np.sum(self.s_y)
+		b_z = np.sum(self.s_z)
+		
+		mn_b_x = np.sum(np.multiply(mn_b_type_mask, self.s_x))
+		mn_b_y = np.sum(np.multiply(mn_b_type_mask, self.s_y))
+		mn_b_z = np.sum(np.multiply(mn_b_type_mask, self.s_z))
+		
+		fe_b_x = np.sum(np.multiply(fe_b_type_mask, self.s_x))
+		fe_b_y = np.sum(np.multiply(fe_b_type_mask, self.s_y))
+		fe_b_z = np.sum(np.multiply(fe_b_type_mask, self.s_z))
+
+		return b_x, b_y, b_z, mn_b_x, mn_b_y, mn_b_z, fe_b_x, fe_b_y, fe_b_z
 
 	def g_type_order_parameter_calc(self):
 		edge_length = self.edge_length
