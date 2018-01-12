@@ -99,6 +99,14 @@ A_temperature_array = np.load(file_prefix+"_A_temperature_array.npy")
 A_mean_temperature_array = np.zeros((3,3,len(temperature_sweep_array)))
 A_std_temperature_array = np.zeros((3,3,len(temperature_sweep_array)))
 
+if (os.path.isfile(str(file_prefix+"_C_temperature_array.npy")) ):
+	C_exists = 1
+	C_temperature_array = np.load(file_prefix+"_C_temperature_array.npy")
+	C_mean_temperature_array = np.zeros((3,3,len(temperature_sweep_array)))
+	C_std_temperature_array = np.zeros((3,3,len(temperature_sweep_array)))
+else:
+	C_exists = 0
+
 G_temperature_array = np.load(file_prefix+"_G_temperature_array.npy")
 G_mean_temperature_array = np.zeros((3,3,len(temperature_sweep_array)))
 G_std_temperature_array = np.zeros((3,3,len(temperature_sweep_array)))
@@ -258,6 +266,47 @@ else:
 	axarr[2, 2].loglog(np.divide(-temperature_sweep_array+g_T_N, g_T_N), np.sqrt(G_mean_temperature_array[0,0,:]**2+G_mean_temperature_array[0,1,:]**2+G_mean_temperature_array[0,2,:]**2),'ko',label='g$_{tot}$')
 
 plt.suptitle('file_prefix='+str(file_prefix)+'edge_length='+str(L)+', iron_doping_level='+str(x)+', steps_to_burn'+str(steps_to_burn))
+
+if C_exists:
+	for atom_index in range(3):
+		for cartesian_direction_index in range(3):
+			for temperature_index, temperature in enumerate(temperature_sweep_array):
+				for equilibration_index in range(steps_to_burn+1, np.shape(E_temperature_array)[1]):
+					C_mean_temperature_array[atom_index,cartesian_direction_index,temperature_index] = np.mean(C_temperature_array[atom_index,cartesian_direction_index,temperature_index,steps_to_burn:equilibration_index])
+					C_std_temperature_array[atom_index,cartesian_direction_index,temperature_index] = np.std(C_temperature_array[atom_index,cartesian_direction_index,temperature_index,steps_to_burn:equilibration_index])
+			
+	### do some intermediary calculations before displaying
+	C_tot_mean_temperature_array = np.sqrt(C_mean_temperature_array[0,0,:]**2+C_mean_temperature_array[0,1,:]**2+C_mean_temperature_array[0,2,:]**2)
+
+	C_tot_mean_temperature_array_slice = C_tot_mean_temperature_array[ (temperature_sweep_array>=C_fit_temperature_min) & (temperature_sweep_array<=C_fit_temperature_max) ]
+	
+	f_BC, axarr_BC = plt.subplots(3, 3, figsize=(16, 10), dpi=80, facecolor='w', edgecolor='k')
+	
+	axarr_BC[1, 0].plot(temperature_sweep_array, np.sqrt(C_mean_temperature_array[0,0,:]**2+C_mean_temperature_array[0,1,:]**2+C_mean_temperature_array[0,2,:]**2),'ko-',label='c$_{tot}$')
+	axarr_BC[1, 0].plot(temperature_sweep_array, C_mean_temperature_array[0,0,:],'o-',label='c$_x$')
+	axarr_BC[1, 0].plot(temperature_sweep_array, C_mean_temperature_array[0,1,:],'o-',label='c$_y$')
+	axarr_BC[1, 0].plot(temperature_sweep_array, C_mean_temperature_array[0,2,:],'o-',label='c$_z$')
+
+
+	axarr_BC[1, 0].legend()
+
+	if x != 1:
+		axarr_BC[1, 1].plot(temperature_sweep_array, np.sqrt(C_mean_temperature_array[1,0,:]**2+C_mean_temperature_array[1,1,:]**2+C_mean_temperature_array[1,2,:]**2)/(1-x),'ko-',label='mn_c$_{tot}$')
+		axarr_BC[1, 1].plot(temperature_sweep_array, C_mean_temperature_array[1,0,:]/(1-x),label='mn_c$_x$')
+		axarr_BC[1, 1].plot(temperature_sweep_array, C_mean_temperature_array[1,1,:]/(1-x),label='mn_c$_y$')
+		axarr_BC[1, 1].plot(temperature_sweep_array, C_mean_temperature_array[1,2,:]/(1-x),label='mn_c$_z$')
+		axarr_BC[1, 1].text(np.max(temperature_sweep_array)/2.0, (np.sqrt(C_mean_temperature_array[1,0,:]**2+C_mean_temperature_array[1,1,:]**2+C_mean_temperature_array[1,2,:]**2)/(1-x))[-1]*0.8, str((np.sqrt(C_mean_temperature_array[1,0,:]**2+C_mean_temperature_array[1,1,:]**2+C_mean_temperature_array[1,2,:]**2)/(1-x))[-1]), fontsize=12)
+		
+		axarr_BC[1, 1].legend()
+
+	if x != 0:
+		axarr_BC[1, 2].plot(temperature_sweep_array, np.sqrt(C_mean_temperature_array[2,0,:]**2+C_mean_temperature_array[2,1,:]**2+C_mean_temperature_array[2,2,:]**2)/x,'ko-',label='fe_c$_{tot}$')
+		axarr_BC[1, 2].plot(temperature_sweep_array, C_mean_temperature_array[2,0,:]/x,label='fe_c$_x$')
+		axarr_BC[1, 2].plot(temperature_sweep_array, C_mean_temperature_array[2,1,:]/x,label='fe_c$_y$')
+		axarr_BC[1, 2].plot(temperature_sweep_array, C_mean_temperature_array[2,2,:]/x,label='fe_c$_z$')
+		axarr_BC[1, 2].text(np.max(temperature_sweep_array)/2.0, (np.sqrt(C_mean_temperature_array[2,0,:]**2+C_mean_temperature_array[2,1,:]**2+C_mean_temperature_array[2,2,:]**2)/x)[-1]*0.8, str((np.sqrt(C_mean_temperature_array[2,0,:]**2+C_mean_temperature_array[2,1,:]**2+C_mean_temperature_array[2,2,:]**2)/x)[-1]), fontsize=12)
+
+		axarr_BC[1, 2].legend()
 
 
 if 0: #should each 3d map of the spins be drawn?
