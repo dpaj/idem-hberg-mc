@@ -81,8 +81,12 @@ temperature_max, temperature_min, temperature_steps, equilibration_steps):
 	temperature_min = str(temperature_min)
 	temperature_steps = str(temperature_steps)
 	equilibration_steps = str(equilibration_steps)
-
-	f = open("dummy.py", 'w')
+	if os.name == 'nt':
+		f = open("dummy.py", 'w')
+	elif os.name == 'posix':
+		the_file_name_used = "multirun_"+file_prefix+"_x="+iron_doping_level+"_L="+edge_length+".py"
+		f = open(str(the_file_name_used), 'w')
+	
 	f.write('from idem_hberg_mc import *')
 	f.write('\n')
 	f.write('#type 0 = Fe\n')
