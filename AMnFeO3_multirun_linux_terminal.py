@@ -128,7 +128,7 @@ temperature_max, temperature_min, temperature_steps, equilibration_steps):
 	if os.name == 'nt':
 		print('subprocess.call(r"nohup python dummy.py & disown", shell=True, stdout=subprocess.PIPE)')
 	elif os.name == 'posix':
-		subprocess.call(r"nohup python dummy.py & disown", shell=True, stdout=subprocess.PIPE)
+		subprocess.call(r"nohup python "+the_file_name_used+" & disown", shell=True, stdout=subprocess.PIPE)
 
 
 #La values from my paper
