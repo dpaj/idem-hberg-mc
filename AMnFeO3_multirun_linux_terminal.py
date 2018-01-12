@@ -75,6 +75,7 @@ temperature_max, temperature_min, temperature_steps, equilibration_steps):
 	single_ion_anisotropy_hat_0 = np.array2string(single_ion_anisotropy_hat_0, separator=', ')
 	single_ion_anisotropy_hat_1 = np.array2string(single_ion_anisotropy_hat_1, separator=', ')
 	superexchange_list = str(superexchange_list)
+	file_prefix_no_quotes = file_prefix
 	file_prefix = '"'+str(file_prefix)+'"'
 	anisotropy_symmetry = '"'+str(anisotropy_symmetry)+'"'
 	temperature_max = str(temperature_max)
@@ -82,9 +83,11 @@ temperature_max, temperature_min, temperature_steps, equilibration_steps):
 	temperature_steps = str(temperature_steps)
 	equilibration_steps = str(equilibration_steps)
 	if os.name == 'nt':
+		the_file_name_used = "multirun_"+file_prefix_no_quotes+"x="+iron_doping_level+"_L="+edge_length+".py"
+		print(the_file_name_used)
 		f = open("dummy.py", 'w')
 	elif os.name == 'posix':
-		the_file_name_used = "multirun_"+file_prefix+"_x="+iron_doping_level+"_L="+edge_length+".py"
+		the_file_name_used = "multirun_"+file_prefix_no_quotes+"x="+iron_doping_level+"_L="+edge_length+".py"
 		f = open(str(the_file_name_used), 'w')
 	
 	f.write('from idem_hberg_mc import *')
