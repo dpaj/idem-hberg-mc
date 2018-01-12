@@ -42,10 +42,13 @@ class SpinLattice(object):
 	s_max_1 = the double that holds the maximum spin value of the manganese spin
 	
 	g_type_mask = the edge_length**3 array that is masked to be g-type for all sites
+	c_type_mask = the edge_length**3 array that is masked to be g-type for all sites
 	a_type_mask = the edge_length**3 array that is masked to be a-type for all sites
 	mn_g_type_mask = the edge_length**3 array that is masked to be g-type for ONLY the mn sites
+	mn_c_type_mask = the edge_length**3 array that is masked to be c-type for ONLY the mn sites
 	mn_a_type_mask = the edge_length**3 array that is masked to be a-type for ONLY the mn sites
 	fe_g_type_mask = the edge_length**3 array that is masked to be g-type for ONLY the fe sites
+	fe_c_type_mask = the edge_length**3 array that is masked to be c-type for ONLY the fe sites
 	fe_a_type_mask = the edge_length**3 array that is masked to be a-type for ONLY the fe sites	
 	
 	superexchange_array = the 9-d array that houses the superexchange interactions for the solid solution, such that the first 3-d are indexation of the sites within the simulated lattice, and the final six dimensions are the nearest neighbor interactions
@@ -68,10 +71,13 @@ class SpinLattice(object):
 		self.s_max_0 = s_max_0
 		self.s_max_1 = s_max_1
 		self.g_type_mask = np.zeros((edge_length,edge_length,edge_length))
+		self.c_type_mask = np.zeros((edge_length,edge_length,edge_length))
 		self.a_type_mask = np.zeros((edge_length,edge_length,edge_length))
 		self.mn_g_type_mask = np.zeros((edge_length,edge_length,edge_length))
+		self.mn_c_type_mask = np.zeros((edge_length,edge_length,edge_length))
 		self.mn_a_type_mask = np.zeros((edge_length,edge_length,edge_length))
 		self.fe_g_type_mask = np.zeros((edge_length,edge_length,edge_length))
+		self.fe_c_type_mask = np.zeros((edge_length,edge_length,edge_length))
 		self.fe_a_type_mask = np.zeros((edge_length,edge_length,edge_length))
 		self.superexchange = superexchange
 		self.superexchange_array = np.zeros((edge_length,edge_length,edge_length,6))
@@ -451,6 +457,7 @@ class SpinLattice(object):
 		nn_pair_corr_b_temperature_array = np.zeros((temperature_steps, equilibration_steps))
 		
 		A_temperature_array = np.zeros((3,3,temperature_steps, equilibration_steps)) #the first "3" is for total, Fe, or Mn, and the second "3" is for the x,y,z components
+		C_temperature_array = np.zeros((3,3,temperature_steps, equilibration_steps)) #the first "3" is for total, Fe, or Mn, and the second "3" is for the x,y,z components
 		G_temperature_array = np.zeros((3,3,temperature_steps, equilibration_steps)) #the first "3" is for total, Fe, or Mn, and the second "3" is for the x,y,z components
 		
 		print("sweeping temperature...")
@@ -521,8 +528,11 @@ class SpinLattice(object):
 				#store the AF order parameters for each equilibration step, indexed by temperature
 				temp_a_x, temp_a_y, temp_a_z, temp_mn_a_x, temp_mn_a_y, temp_mn_a_z, temp_fe_a_x, temp_fe_a_y, temp_fe_a_z = np.divide(self.a_type_order_parameter_calc(), edge_length**3)
 				temp_g_x, temp_g_y, temp_g_z, temp_mn_g_x, temp_mn_g_y, temp_mn_g_z, temp_fe_g_x, temp_fe_g_y, temp_fe_g_z = np.divide(self.g_type_order_parameter_calc(), edge_length**3)
+				temp_c_x, temp_c_y, temp_c_z, temp_mn_c_x, temp_mn_c_y, temp_mn_c_z, temp_fe_c_x, temp_fe_c_y, temp_fe_c_z = np.divide(self.c_type_order_parameter_calc(), edge_length**3)
 				A_temperature_array[0,0,temperature_index, equilibration_index], A_temperature_array[0,1,temperature_index, equilibration_index], A_temperature_array[0,2,temperature_index, equilibration_index], A_temperature_array[1,0,temperature_index, equilibration_index], A_temperature_array[1,1,temperature_index, equilibration_index], A_temperature_array[1,2,temperature_index, equilibration_index], A_temperature_array[2,0,temperature_index, equilibration_index], A_temperature_array[2,1,temperature_index, equilibration_index], A_temperature_array[2,2,temperature_index, equilibration_index] = temp_a_x, temp_a_y, temp_a_z, temp_mn_a_x, temp_mn_a_y, temp_mn_a_z, temp_fe_a_x, temp_fe_a_y, temp_fe_a_z
 				G_temperature_array[0,0,temperature_index, equilibration_index], G_temperature_array[0,1,temperature_index, equilibration_index], G_temperature_array[0,2,temperature_index, equilibration_index], G_temperature_array[1,0,temperature_index, equilibration_index], G_temperature_array[1,1,temperature_index, equilibration_index], G_temperature_array[1,2,temperature_index, equilibration_index], G_temperature_array[2,0,temperature_index, equilibration_index], G_temperature_array[2,1,temperature_index, equilibration_index], G_temperature_array[2,2,temperature_index, equilibration_index] = temp_g_x, temp_g_y, temp_g_z, temp_mn_g_x, temp_mn_g_y, temp_mn_g_z, temp_fe_g_x, temp_fe_g_y, temp_fe_g_z
+				C_temperature_array[0,0,temperature_index, equilibration_index], C_temperature_array[0,1,temperature_index, equilibration_index], C_temperature_array[0,2,temperature_index, equilibration_index], C_temperature_array[1,0,temperature_index, equilibration_index], C_temperature_array[1,1,temperature_index, equilibration_index], C_temperature_array[1,2,temperature_index, equilibration_index], C_temperature_array[2,0,temperature_index, equilibration_index], C_temperature_array[2,1,temperature_index, equilibration_index], C_temperature_array[2,2,temperature_index, equilibration_index] = temp_c_x, temp_c_y, temp_c_z, temp_mn_c_x, temp_mn_c_y, temp_mn_c_z, temp_fe_c_x, temp_fe_c_y, temp_fe_c_z
+				
 				
 				#store the nearest neighbor correlations for each equilibration step, indexed by temperature
 				temp_nn_pair_corr_var_abs_abc, temp_nn_pair_corr_var_ac, temp_nn_pair_corr_var_b = np.divide(self.nn_pair_corr_calc(),edge_length**3)
@@ -559,6 +569,7 @@ class SpinLattice(object):
 			
 		np.save(str(self.file_prefix+str(int(start_time))+'_x='+str(self.iron_doping_level)+'_L='+str(self.edge_length) + "_E_temperature_array"), E_temperature_array)
 		np.save(str(self.file_prefix+str(int(start_time))+'_x='+str(self.iron_doping_level)+'_L='+str(self.edge_length) + "_A_temperature_array"), A_temperature_array)
+		np.save(str(self.file_prefix+str(int(start_time))+'_x='+str(self.iron_doping_level)+'_L='+str(self.edge_length) + "_C_temperature_array"), C_temperature_array)
 		np.save(str(self.file_prefix+str(int(start_time))+'_x='+str(self.iron_doping_level)+'_L='+str(self.edge_length) + "_G_temperature_array"), G_temperature_array)
 		np.save(str(self.file_prefix+str(int(start_time))+'_x='+str(self.iron_doping_level)+'_L='+str(self.edge_length) + "_nn_pair_corr_abs_abc_temperature_array"), nn_pair_corr_abs_abc_temperature_array)
 		np.save(str(self.file_prefix+str(int(start_time))+'_x='+str(self.iron_doping_level)+'_L='+str(self.edge_length) + "_nn_pair_corr_ac_temperature_array"), nn_pair_corr_ac_temperature_array)
@@ -793,6 +804,7 @@ class SpinLattice(object):
 		#fe_a_type_mask = self.fe_a_type_mask
 		
 		g_type_mask = self.g_type_mask
+		c_type_mask = self.c_type_mask
 		a_type_mask = self.a_type_mask
 		edge_length = self.edge_length
 		a_type_mask[::,::2,::] = 1
@@ -805,10 +817,19 @@ class SpinLattice(object):
 						g_type_mask[i,j,k] = 1
 					else:
 						g_type_mask[i,j,k] = -1
-						
+
+		for i in range(edge_length):
+			for j in range(edge_length):
+				for k in range(edge_length):
+					if np.mod(i+k,2) == 0:
+						c_type_mask[i,j,k] = 1
+					else:
+						c_type_mask[i,j,k] = -1
 		self.mn_g_type_mask = np.multiply(atom_type, g_type_mask)
+		self.mn_c_type_mask = np.multiply(atom_type, c_type_mask)
 		self.mn_a_type_mask = np.multiply(atom_type, a_type_mask)
 		self.fe_g_type_mask = np.multiply(1-atom_type, g_type_mask)
+		self.fe_c_type_mask = np.multiply(1-atom_type, c_type_mask)
 		self.fe_a_type_mask = np.multiply(1-atom_type, a_type_mask)
 		
 		#print('mn_g_type_mask', mn_g_type_mask)
@@ -859,6 +880,26 @@ class SpinLattice(object):
 		fe_g_z = np.sum(np.multiply(fe_g_type_mask, self.s_z))
 
 		return g_x, g_y, g_z, mn_g_x, mn_g_y, mn_g_z, fe_g_x, fe_g_y, fe_g_z
+
+	def c_type_order_parameter_calc(self):
+		edge_length = self.edge_length
+		c_type_mask = self.c_type_mask
+		mn_c_type_mask = self.mn_c_type_mask
+		fe_c_type_mask = self.fe_c_type_mask
+
+		c_x = np.sum(np.multiply(c_type_mask, self.s_x))
+		c_y = np.sum(np.multiply(c_type_mask, self.s_y))
+		c_z = np.sum(np.multiply(c_type_mask, self.s_z))
+		
+		mn_c_x = np.sum(np.multiply(mn_c_type_mask, self.s_x))
+		mn_c_y = np.sum(np.multiply(mn_c_type_mask, self.s_y))
+		mn_c_z = np.sum(np.multiply(mn_c_type_mask, self.s_z))
+		
+		fe_c_x = np.sum(np.multiply(fe_c_type_mask, self.s_x))
+		fe_c_y = np.sum(np.multiply(fe_c_type_mask, self.s_y))
+		fe_c_z = np.sum(np.multiply(fe_c_type_mask, self.s_z))
+
+		return c_x, c_y, c_z, mn_c_x, mn_c_y, mn_c_z, fe_c_x, fe_c_y, fe_c_z
 
 	def bond_list_calc(self):
 		atom_type = self.atom_type
