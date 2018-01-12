@@ -3,6 +3,7 @@ from idem_hberg_mc import *
 import os
 import subprocess
 import numpy as np
+import time
 
 """			
 JFeFeb = self.superexchange[0]
@@ -117,8 +118,10 @@ temperature_max, temperature_min, temperature_steps, equilibration_steps):
 	f.write('my_lattice.temperature_sweep(temperature_max='+temperature_max+', temperature_min='+temperature_min+', temperature_steps='+temperature_steps+', \\\n')
 	f.write('equilibration_steps='+equilibration_steps+', number_of_angle_states=100, magnetic_field=np.array([0.0,0.0,0.0]))\n')
 	f.close()
-	print('subprocess.call(r"nohup python dummy.py & disown", shell=True, stdout=subprocess.PIPE)') ###LATER THIS WILL BE AN OS COMMAND WITHOUT THE PRINT
-	###???proc = subprocess.call(r"aomx.exe <dummy.in >dummy.out", shell=True, stdout=subprocess.PIPE)
+	if os.name == 'nt':
+		print('subprocess.call(r"nohup python dummy.py & disown", shell=True, stdout=subprocess.PIPE)')
+	elif os.name == 'posix':
+		subprocess.call(r"nohup python dummy.py & disown", shell=True, stdout=subprocess.PIPE)
 
 
 #La values from my paper
@@ -173,7 +176,7 @@ max_temperatures_to_run = np.linspace(TN_LMO+50, TN_LFO+50,11)
 min_temperatures_to_run = np.ones(11)
 
 print(x_values_to_run, max_temperatures_to_run, min_temperatures_to_run)
-
+wait_between_file_runs = 15#seconds
 file_prefix_list = ["LMFO_MnFe=A_", "LMFO_MnFe=B_", "LMFO_MnFe=C_", "LMFO_MnFe=G_", "LMFO_MnFe=0_"]
 for sx_fn_idx, superexchange_function in enumerate([La_paper.return_superexchange_list_MnFeA, La_paper.return_superexchange_list_MnFeB, La_paper.return_superexchange_list_MnFeC, La_paper.return_superexchange_list_MnFeG, La_paper.return_superexchange_list_MnFe0]):
 	superexchange_list = superexchange_function()
@@ -185,5 +188,7 @@ for sx_fn_idx, superexchange_function in enumerate([La_paper.return_superexchang
 		file_prefix, \
 		anisotropy_symmetry, \
 		max_temperatures_to_run[idx], min_temperatures_to_run[idx], temperature_steps, equilibration_steps)
+		
+		time.sleep(wait_between_file_runs)
 
 
