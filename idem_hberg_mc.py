@@ -11,6 +11,7 @@ from scipy.integrate import quad
 from scipy.interpolate import interp1d
 import random
 import os
+import json
 
 
 hbar = 6.626070040e-34 #SI units
@@ -406,7 +407,51 @@ class SpinLattice(object):
 				for k in range(0,edge_length):					
 					superexchange_array[i,j,k] = superexchange_array_calc(i,j,k)
 		#print('superexchange_array',superexchange_array)
+	def init_arrays_restart(self, atom_type, s_x, s_y, s_z):
+		anisotropy_symmetry = self.anisotropy_symmetry
+		iron_doping_level = self.iron_doping_level
+		edge_length, s_max, phi, theta, energy = self.edge_length, self.s_max, self.phi, self.theta, self.energy
+		self.s_x, self.s_y, self.s_z = s_x, s_y, s_z
+		self.atom_type = atom_type
+		single_ion_anisotropy_hat, single_ion_anisotropy_hat_0, single_ion_anisotropy_hat_1 = self.single_ion_anisotropy_hat, self.single_ion_anisotropy_hat_0, self.single_ion_anisotropy_hat_1
+		single_ion_anisotropy_len, single_ion_anisotropy_len_0, single_ion_anisotropy_len_1 = self.single_ion_anisotropy_len, self.single_ion_anisotropy_len_0, self.single_ion_anisotropy_len_1
+		superexchange_array = self.superexchange_array
+		s_max_0, s_max_1 = self.s_max_0, self.s_max_1
+		superexchange_array_calc = self.superexchange_array_calc
+		single_ion_anisotropy_hat_list = [single_ion_anisotropy_hat_0, single_ion_anisotropy_hat_1]
+		single_ion_anisotropy_len_list = [single_ion_anisotropy_len_0, single_ion_anisotropy_len_1]
+		s_max_list = [s_max_0, s_max_1]
+		#initialize the spin momentum vectors to have a random direction
+		for i in range(0,edge_length):
+			for j in range(0,edge_length):
+				for k in range(0,edge_length):
+					if anisotropy_symmetry == 0:
+						single_ion_anisotropy_hat[i,j,k] = single_ion_anisotropy_hat_list[atom_type[i,j,k]]
+						single_ion_anisotropy_len[i,j,k] = single_ion_anisotropy_len_list[atom_type[i,j,k]]
+					elif anisotropy_symmetry == "Pnma":
+						single_ion_anisotropy_hat[i,j,k] = single_ion_anisotropy_hat_list[atom_type[i,j,k]]
+						single_ion_anisotropy_len[i,j,k] = single_ion_anisotropy_len_list[atom_type[i,j,k]]
+						if (j % 2) == 0:
+							single_ion_anisotropy_hat[i,j,k][1] = -single_ion_anisotropy_hat[i,j,k][1]
+						if ((i+k)%2) == 0:
+							single_ion_anisotropy_hat[i,j,k][0] = -single_ion_anisotropy_hat[i,j,k][0]
+					s_max[i,j,k] = s_max_list[atom_type[i,j,k]]
 					
+					
+					
+					theta[i,j,k] = np.arccos(s_z[i,j,k] / np.sqrt(s_x[i,j,k]**2 + s_y[i,j,k]**2 +s_z[i,j,k]**2))
+					phi[i,j,k] = -np.arctan2(s_y[i,j,k], s_x[i,j,k])
+					#energy = energy_calc((theta, phi),super_exchange_field_c,single_ion_anisotropy_len_ijk,single_ion_anisotropy_hat_ijk,s_max_ijk)
+					
+					#phi[i,j,k] = np.random.rand()*2*np.pi
+					#theta[i,j,k] = np.arccos(1.0-2.0*np.random.rand())# asdf
+					energy[i,j,k] = self.energy_calc_simple((theta[i,j,k],phi[i,j,k]),i,j,k)
+					
+		for i in range(0,edge_length):
+			for j in range(0,edge_length):
+				for k in range(0,edge_length):					
+					superexchange_array[i,j,k] = superexchange_array_calc(i,j,k)
+		#print('superexchange_array',superexchange_array)
 
 		return s_x, s_y, s_z, phi, theta, energy		
 	def negative_of_energy_calc(self, x, super_exchange_field):
@@ -414,8 +459,43 @@ class SpinLattice(object):
 	def total_energy_calc(self):
 		self.total_energy = np.sum(self.energy)
 		return total_energy
+	def save_parameters_to_json(self, temperature_max, temperature_min, temperature_steps, equilibration_steps, number_of_angle_states, magnetic_field, start_time):
+		D_0_len = self.single_ion_anisotropy_len_0
+		D_1_len = self.single_ion_anisotropy_len_1
+		D_0_hat = np.array(self.single_ion_anisotropy_hat_0)
+		D_1_hat = np.array(self.single_ion_anisotropy_hat_1)
+		iron_doping_level = self.iron_doping_level
+		edge_length = self.edge_length
+		s_max_0 = self.s_max_0
+		s_max_1 = self.s_max_1
+		superexchange = self.superexchange
+		magnetic_field = np.array(self.magnetic_field)
+		file_prefix = self.file_prefix
+		anisotropy_symmetry = self.anisotropy_symmetry
+		double_perovskite = 0
+		#temperature_max = 
+		#temperature_min = 
+		#temperature_steps = 
+		#equilibration_steps = 
+		#number_of_angle_states = 
+		
 
+		run_parameters = { "D_0_len": D_0_len, "D_1_len": D_1_len , "D_0_hat": D_0_hat.tolist() , "D_1_hat": D_1_hat.tolist() \
+		, "iron_doping_level": iron_doping_level , "edge_length": edge_length , "s_max_0": s_max_0 , "s_max_1": s_max_1 , "superexchange": superexchange \
+		, "magnetic_field": magnetic_field.tolist() , "file_prefix": file_prefix , "anisotropy_symmetry": anisotropy_symmetry, "double_perovskite": double_perovskite \
+		, "temperature_max": temperature_max , "temperature_min": temperature_min , "temperature_steps": temperature_steps , "equilibration_steps": equilibration_steps , "number_of_angle_states": number_of_angle_states\
+		, "start_time": start_time}
+		with open(self.file_prefix+str(str(int(start_time))+'_x='+str(self.iron_doping_level)+'_L='+str(self.edge_length) + "_run_parameters.json"),'w') as outfile:  
+			json.dump(run_parameters, outfile)
+		
+		
 	def temperature_sweep(self, temperature_max, temperature_min, temperature_steps, equilibration_steps, number_of_angle_states, magnetic_field):
+		f = open(self.file_prefix+str(str(int(start_time))+'_x='+str(self.iron_doping_level)+'_L='+str(self.edge_length) + "_incomplete.txt"),'a')
+		f.write("I'm not complete...\n")
+		f.close()
+		#save the paramters to a json file
+		self.save_parameters_to_json(temperature_max, temperature_min, temperature_steps, equilibration_steps, number_of_angle_states, magnetic_field, start_time)
+		np.save(str(self.file_prefix+str(int(start_time))+'_x='+str(self.iron_doping_level)+'_L='+str(self.edge_length) + "_atom_type_array"), self.atom_type)
 		#get the relevant attributes from the SpinLattice to have instances in the scope of temperature_sweep
 		s_max = self.s_max
 		theta = self.theta
@@ -544,7 +624,7 @@ class SpinLattice(object):
 				nn_pair_corr_b_temperature_array[temperature_index, equilibration_index] = temp_nn_pair_corr_var_b
 				
 			#write to a status file for this temperature
-			f = open(self.file_prefix+str(str(int(start_time))+'_x='+str(self.iron_doping_level)+'_L='+str(self.edge_length) + "_run_status"),'a')
+			f = open(self.file_prefix+str(str(int(start_time))+'_x='+str(self.iron_doping_level)+'_L='+str(self.edge_length) + "_run_status.txt"),'a')
 			f.write(str(temperature) + ", " + str(time() - start_time) + ", " + str(np.sum(energy)/edge_length**3)+"\n")
 			f.close()
 			
@@ -570,20 +650,182 @@ class SpinLattice(object):
 			np.save(str(self.file_prefix+str(int(start_time))+'_x='+str(self.iron_doping_level)+'_L='+str(self.edge_length) + "_s_y"), s_y)
 			np.save(str(self.file_prefix+str(int(start_time))+'_x='+str(self.iron_doping_level)+'_L='+str(self.edge_length) + "_s_z"), s_z)
 			
-		np.save(str(self.file_prefix+str(int(start_time))+'_x='+str(self.iron_doping_level)+'_L='+str(self.edge_length) + "_E_temperature_array"), E_temperature_array)
-		np.save(str(self.file_prefix+str(int(start_time))+'_x='+str(self.iron_doping_level)+'_L='+str(self.edge_length) + "_A_temperature_array"), A_temperature_array)
-		np.save(str(self.file_prefix+str(int(start_time))+'_x='+str(self.iron_doping_level)+'_L='+str(self.edge_length) + "_B_temperature_array"), B_temperature_array)
-		np.save(str(self.file_prefix+str(int(start_time))+'_x='+str(self.iron_doping_level)+'_L='+str(self.edge_length) + "_C_temperature_array"), C_temperature_array)
-		np.save(str(self.file_prefix+str(int(start_time))+'_x='+str(self.iron_doping_level)+'_L='+str(self.edge_length) + "_G_temperature_array"), G_temperature_array)
-		np.save(str(self.file_prefix+str(int(start_time))+'_x='+str(self.iron_doping_level)+'_L='+str(self.edge_length) + "_nn_pair_corr_abs_abc_temperature_array"), nn_pair_corr_abs_abc_temperature_array)
-		np.save(str(self.file_prefix+str(int(start_time))+'_x='+str(self.iron_doping_level)+'_L='+str(self.edge_length) + "_nn_pair_corr_ac_temperature_array"), nn_pair_corr_ac_temperature_array)
-		np.save(str(self.file_prefix+str(int(start_time))+'_x='+str(self.iron_doping_level)+'_L='+str(self.edge_length) + "_nn_pair_corr_b_temperature_array"), nn_pair_corr_b_temperature_array)
-		np.save(str(self.file_prefix+str(int(start_time))+'_x='+str(self.iron_doping_level)+'_L='+str(self.edge_length) + "_temperature_sweep_array"), temperature_sweep_array)
-
-			
+			np.save(str(self.file_prefix+str(int(start_time))+'_x='+str(self.iron_doping_level)+'_L='+str(self.edge_length) + "_E_temperature_array"), E_temperature_array)
+			np.save(str(self.file_prefix+str(int(start_time))+'_x='+str(self.iron_doping_level)+'_L='+str(self.edge_length) + "_A_temperature_array"), A_temperature_array)
+			np.save(str(self.file_prefix+str(int(start_time))+'_x='+str(self.iron_doping_level)+'_L='+str(self.edge_length) + "_B_temperature_array"), B_temperature_array)
+			np.save(str(self.file_prefix+str(int(start_time))+'_x='+str(self.iron_doping_level)+'_L='+str(self.edge_length) + "_C_temperature_array"), C_temperature_array)
+			np.save(str(self.file_prefix+str(int(start_time))+'_x='+str(self.iron_doping_level)+'_L='+str(self.edge_length) + "_G_temperature_array"), G_temperature_array)
+			np.save(str(self.file_prefix+str(int(start_time))+'_x='+str(self.iron_doping_level)+'_L='+str(self.edge_length) + "_nn_pair_corr_abs_abc_temperature_array"), nn_pair_corr_abs_abc_temperature_array)
+			np.save(str(self.file_prefix+str(int(start_time))+'_x='+str(self.iron_doping_level)+'_L='+str(self.edge_length) + "_nn_pair_corr_ac_temperature_array"), nn_pair_corr_ac_temperature_array)
+			np.save(str(self.file_prefix+str(int(start_time))+'_x='+str(self.iron_doping_level)+'_L='+str(self.edge_length) + "_nn_pair_corr_b_temperature_array"), nn_pair_corr_b_temperature_array)
+			np.save(str(self.file_prefix+str(int(start_time))+'_x='+str(self.iron_doping_level)+'_L='+str(self.edge_length) + "_temperature_sweep_array"), temperature_sweep_array)
+		#write to a completion file
+		os.remove(self.file_prefix+str(str(int(start_time))+'_x='+str(self.iron_doping_level)+'_L='+str(self.edge_length) + "_incomplete.txt"))
+		f = open(self.file_prefix+str(str(int(start_time))+'_x='+str(self.iron_doping_level)+'_L='+str(self.edge_length) + "_complete.txt"),'a')
+		f.write("I'm all done, and i might put more info here later...\n")
+		f.close()
 		
-
+	def temperature_sweep_restart(self, temperature_max, temperature_min, temperature_steps, equilibration_steps, number_of_angle_states, magnetic_field, restart_time, E_temperature_array, A_temperature_array, B_temperature_array, C_temperature_array, G_temperature_array, nn_pair_corr_abs_abc_temperature_array, nn_pair_corr_ac_temperature_array, nn_pair_corr_b_temperature_array, temperature_sweep_array, temperature_last_completed):
 		
+		f = open(self.file_prefix+str(str(int(restart_time))+'_x='+str(self.iron_doping_level)+'_L='+str(self.edge_length) + "_incomplete.txt"),'a')
+		f.write("I'm not complete...\n")
+		f.close()
+		#save the paramters to a json file
+		self.save_parameters_to_json(temperature_max, temperature_min, temperature_steps, equilibration_steps, number_of_angle_states, magnetic_field, restart_time)
+		np.save(str(self.file_prefix+str(int(restart_time))+'_x='+str(self.iron_doping_level)+'_L='+str(self.edge_length) + "_atom_type_array"), self.atom_type)
+		#get the relevant attributes from the SpinLattice to have instances in the scope of temperature_sweep
+		s_max = self.s_max
+		theta = self.theta
+		phi = self.phi
+		energy = self.energy
+		energy_calc = self.energy_calc
+		negative_of_energy_calc = self.negative_of_energy_calc
+		energy_calc_simple = self.energy_calc_simple
+		super_exchange_field_calc = self.super_exchange_field_calc
+		edge_length = self.edge_length
+		s_x = self.s_x
+		s_y = self.s_y
+		s_z = self.s_z
+		single_ion_anisotropy_hat = self.single_ion_anisotropy_hat
+		single_ion_anisotropy_len = self.single_ion_anisotropy_len
+		random_ijk_list = self.random_ijk_list
+		
+		#when looking at the 0 to pi theta values that will be thermalized after choosing a random phi value from knowing the minimum energy
+		spaced_theta_values = np.arccos(1-2*np.linspace(0,1,number_of_angle_states))
+		
+		#initialize all of the lists
+		temporary_nn_pair_corr_list_ac = []
+		temporary_nn_pair_corr_list_b = []
+		
+		temporary_pair_corr_list_ac = []
+		temporary_pair_corr_list_b = []
+		
+		print("sweeping temperature...")
+		#print(single_ion_anisotropy_hat)
+		#print(single_ion_anisotropy_len)
+		for temperature_index, temperature in enumerate(temperature_sweep_array):
+			if temperature < temperature_last_completed:
+				print("\ntemperature=",temperature)
+				for equilibration_index in range(equilibration_steps):
+					print("  i=", equilibration_index, end=':')
+					for ijk in random_ijk_list:
+						#i want to not call the ijk every time when i'm getting spin positions and such
+						i,j,k = ijk[0], ijk[1], ijk[2]
+						s_max_ijk = s_max[i,j,k]
+						single_ion_anisotropy_hat_ijk = single_ion_anisotropy_hat[i,j,k]
+						single_ion_anisotropy_len_ijk = single_ion_anisotropy_len[i,j,k]
+						
+						#calculate the super_exchange_field for the site in the coordinate system of the lattice
+						super_exchange_field_c = super_exchange_field_calc(i,j,k)
+						
+						#put in the lab magnetic field
+						super_exchange_field_c = super_exchange_field_c + magnetic_field
+						
+						#calculate the minimum positions of theta and phi for the site in the lattice coordinate system
+						theta_min_c, phi_min_c = spop.optimize.fmin(energy_calc, \
+						maxfun=5000, maxiter=5000, ftol=1e-6, xtol=1e-5, x0=(theta[i,j,k], phi[i,j,k]), args = (super_exchange_field_c,single_ion_anisotropy_len_ijk,single_ion_anisotropy_hat_ijk,s_max_ijk), disp=0)
+						
+						#move to the frame in which the minimum energy position is along the z-axis 
+						super_exchange_field_r = np.dot(my_rot_mat(theta_min_c, phi_min_c), super_exchange_field_c)
+						single_ion_anisotropy_hat_ijk_r = np.dot(my_rot_mat(theta_min_c, phi_min_c), single_ion_anisotropy_hat_ijk)
+						phi_thermal_r = random.random()*2*np.pi #phi is completely random in the rotated frame
+						
+						#make a list of energies to choose from when applying the Boltzmann statistics
+						E_r_list = energy_calc((spaced_theta_values, phi_thermal_r),super_exchange_field_r,single_ion_anisotropy_len_ijk,single_ion_anisotropy_hat_ijk_r,s_max_ijk)
+						E_r_list = np.add(E_r_list, -np.min(E_r_list)) #the energies are always less than zero, so we add the negative of the minimum to avoid large numbers in Boltzmann factor
+						
+						#from the list of energies, apply Boltzmann statistics to get the probability of each angle, and normalize
+						P_r_list = np.exp(-E_r_list/temperature)
+						P_r_list = P_r_list/np.sum(P_r_list)
+						
+						#make a weighted probability choice of the theta_r value									
+						theta_thermal_r = np.random.choice(spaced_theta_values, p=P_r_list)
+						
+						#change from spherical to cartesian coordinates in prepration for rotation back to the lattice frame
+						s_x_thermal_r = s_max_ijk*np.sin(theta_thermal_r)*np.cos(phi_thermal_r)
+						s_y_thermal_r = s_max_ijk*np.sin(theta_thermal_r)*np.sin(phi_thermal_r)
+						s_z_thermal_r = s_max_ijk*np.cos(theta_thermal_r)									
+						s_thermal_r = np.array([s_x_thermal_r, s_y_thermal_r, s_z_thermal_r])
+
+						#take the thermalized value for the spin orientation and rotate into the lattice frame
+						s_thermal_c = np.dot(my_rot_mat(-theta_min_c, -phi_min_c), s_thermal_r)
+						s_x_thermal_c, s_y_thermal_c, s_z_thermal_c = s_thermal_c
+						
+						theta_thermal_c = np.arccos(s_z_thermal_c / np.sqrt(s_x_thermal_c**2 + s_y_thermal_c**2 +s_z_thermal_c**2))
+						phi_thermal_c = -np.arctan2(s_y_thermal_c, s_x_thermal_c)
+						energy_thermal_c = energy_calc((theta_thermal_c, phi_thermal_c),super_exchange_field_c,single_ion_anisotropy_len_ijk,single_ion_anisotropy_hat_ijk,s_max_ijk)
+						
+						#update the SpinLattice parameters for the given site with the thermalized values for that equilibration step
+						phi[i,j,k] = phi_thermal_c
+						theta[i,j,k] = theta_thermal_c
+						s_x[i,j,k] = s_max_ijk*np.sin(theta[i,j,k])*np.cos(phi[i,j,k])
+						s_y[i,j,k] = s_max_ijk*np.sin(theta[i,j,k])*np.sin(phi[i,j,k])
+						s_z[i,j,k] = s_max_ijk*np.cos(theta[i,j,k])
+						energy[i,j,k] = energy_calc((theta[i,j,k],phi[i,j,k]),super_exchange_field_c,single_ion_anisotropy_len_ijk,single_ion_anisotropy_hat_ijk,s_max_ijk)
+								
+					#store the energies for each equilibration step, indexed by temperature
+					E_temperature_array[temperature_index, equilibration_index] = np.sum(energy)/edge_length**3 #((temperature_steps, equilibration_steps))
+					
+					#store the AF order parameters for each equilibration step, indexed by temperature
+					temp_a_x, temp_a_y, temp_a_z, temp_mn_a_x, temp_mn_a_y, temp_mn_a_z, temp_fe_a_x, temp_fe_a_y, temp_fe_a_z = np.divide(self.a_type_order_parameter_calc(), edge_length**3)
+					temp_b_x, temp_b_y, temp_b_z, temp_mn_b_x, temp_mn_b_y, temp_mn_b_z, temp_fe_b_x, temp_fe_b_y, temp_fe_b_z = np.divide(self.b_type_order_parameter_calc(), edge_length**3)
+					temp_g_x, temp_g_y, temp_g_z, temp_mn_g_x, temp_mn_g_y, temp_mn_g_z, temp_fe_g_x, temp_fe_g_y, temp_fe_g_z = np.divide(self.g_type_order_parameter_calc(), edge_length**3)
+					temp_c_x, temp_c_y, temp_c_z, temp_mn_c_x, temp_mn_c_y, temp_mn_c_z, temp_fe_c_x, temp_fe_c_y, temp_fe_c_z = np.divide(self.c_type_order_parameter_calc(), edge_length**3)
+					A_temperature_array[0,0,temperature_index, equilibration_index], A_temperature_array[0,1,temperature_index, equilibration_index], A_temperature_array[0,2,temperature_index, equilibration_index], A_temperature_array[1,0,temperature_index, equilibration_index], A_temperature_array[1,1,temperature_index, equilibration_index], A_temperature_array[1,2,temperature_index, equilibration_index], A_temperature_array[2,0,temperature_index, equilibration_index], A_temperature_array[2,1,temperature_index, equilibration_index], A_temperature_array[2,2,temperature_index, equilibration_index] = temp_a_x, temp_a_y, temp_a_z, temp_mn_a_x, temp_mn_a_y, temp_mn_a_z, temp_fe_a_x, temp_fe_a_y, temp_fe_a_z
+					B_temperature_array[0,0,temperature_index, equilibration_index], B_temperature_array[0,1,temperature_index, equilibration_index], B_temperature_array[0,2,temperature_index, equilibration_index], B_temperature_array[1,0,temperature_index, equilibration_index], B_temperature_array[1,1,temperature_index, equilibration_index], B_temperature_array[1,2,temperature_index, equilibration_index], B_temperature_array[2,0,temperature_index, equilibration_index], B_temperature_array[2,1,temperature_index, equilibration_index], B_temperature_array[2,2,temperature_index, equilibration_index] = temp_b_x, temp_b_y, temp_b_z, temp_mn_b_x, temp_mn_b_y, temp_mn_b_z, temp_fe_b_x, temp_fe_b_y, temp_fe_b_z
+					G_temperature_array[0,0,temperature_index, equilibration_index], G_temperature_array[0,1,temperature_index, equilibration_index], G_temperature_array[0,2,temperature_index, equilibration_index], G_temperature_array[1,0,temperature_index, equilibration_index], G_temperature_array[1,1,temperature_index, equilibration_index], G_temperature_array[1,2,temperature_index, equilibration_index], G_temperature_array[2,0,temperature_index, equilibration_index], G_temperature_array[2,1,temperature_index, equilibration_index], G_temperature_array[2,2,temperature_index, equilibration_index] = temp_g_x, temp_g_y, temp_g_z, temp_mn_g_x, temp_mn_g_y, temp_mn_g_z, temp_fe_g_x, temp_fe_g_y, temp_fe_g_z
+					C_temperature_array[0,0,temperature_index, equilibration_index], C_temperature_array[0,1,temperature_index, equilibration_index], C_temperature_array[0,2,temperature_index, equilibration_index], C_temperature_array[1,0,temperature_index, equilibration_index], C_temperature_array[1,1,temperature_index, equilibration_index], C_temperature_array[1,2,temperature_index, equilibration_index], C_temperature_array[2,0,temperature_index, equilibration_index], C_temperature_array[2,1,temperature_index, equilibration_index], C_temperature_array[2,2,temperature_index, equilibration_index] = temp_c_x, temp_c_y, temp_c_z, temp_mn_c_x, temp_mn_c_y, temp_mn_c_z, temp_fe_c_x, temp_fe_c_y, temp_fe_c_z
+					
+					
+					#store the nearest neighbor correlations for each equilibration step, indexed by temperature
+					temp_nn_pair_corr_var_abs_abc, temp_nn_pair_corr_var_ac, temp_nn_pair_corr_var_b = np.divide(self.nn_pair_corr_calc(),edge_length**3)
+					nn_pair_corr_abs_abc_temperature_array[temperature_index, equilibration_index] = temp_nn_pair_corr_var_abs_abc
+					nn_pair_corr_ac_temperature_array[temperature_index, equilibration_index] = temp_nn_pair_corr_var_ac
+					nn_pair_corr_b_temperature_array[temperature_index, equilibration_index] = temp_nn_pair_corr_var_b
+					
+				#write to a status file for this temperature
+				f = open(self.file_prefix+str(str(int(restart_time))+'_x='+str(self.iron_doping_level)+'_L='+str(self.edge_length) + "_run_status.txt"),'a')
+				f.write(str(temperature) + ", " + str(time() - restart_time) + ", " + str(np.sum(energy)/edge_length**3)+"\n")
+				f.close()
+				
+				"""
+				#working on this part start
+				#to get the correlation length using pair_corr_calc rather than nn_pair_corr_calc
+				temp_pair_corr_var_ac, temp_pair_corr_var_b = self.pair_corr_calc()
+				temp_pair_corr_var_ac = np.delete(temp_pair_corr_var_ac, 0)
+				temp_pair_corr_var_b = np.delete(temp_pair_corr_var_b, 0)
+				temporary_pair_corr_list_ac.append(temp_pair_corr_var_ac)
+				temporary_pair_corr_list_b.append(temp_pair_corr_var_b)
+				print("\ntemporary_pair_corr_list_ac",temporary_pair_corr_list_ac)
+				print("\ntemporary_pair_corr_list_b",temporary_pair_corr_list_b)
+				#working on this part end
+				
+				temporary_nn_pair_corr_list_ac.append(temp_nn_pair_corr_var_ac)
+				temporary_nn_pair_corr_list_b.append(temp_nn_pair_corr_var_b)
+				"""
+				
+				
+				print('\nfinal energy=', np.sum(energy), 'pair corr ac then b',temp_nn_pair_corr_var_ac, temp_nn_pair_corr_var_b)
+				np.save(str(self.file_prefix+str(int(restart_time))+'_x='+str(self.iron_doping_level)+'_L='+str(self.edge_length) + "_s_x"), s_x)
+				np.save(str(self.file_prefix+str(int(restart_time))+'_x='+str(self.iron_doping_level)+'_L='+str(self.edge_length) + "_s_y"), s_y)
+				np.save(str(self.file_prefix+str(int(restart_time))+'_x='+str(self.iron_doping_level)+'_L='+str(self.edge_length) + "_s_z"), s_z)
+				
+				np.save(str(self.file_prefix+str(int(restart_time))+'_x='+str(self.iron_doping_level)+'_L='+str(self.edge_length) + "_E_temperature_array"), E_temperature_array)
+				np.save(str(self.file_prefix+str(int(restart_time))+'_x='+str(self.iron_doping_level)+'_L='+str(self.edge_length) + "_A_temperature_array"), A_temperature_array)
+				np.save(str(self.file_prefix+str(int(restart_time))+'_x='+str(self.iron_doping_level)+'_L='+str(self.edge_length) + "_B_temperature_array"), B_temperature_array)
+				np.save(str(self.file_prefix+str(int(restart_time))+'_x='+str(self.iron_doping_level)+'_L='+str(self.edge_length) + "_C_temperature_array"), C_temperature_array)
+				np.save(str(self.file_prefix+str(int(restart_time))+'_x='+str(self.iron_doping_level)+'_L='+str(self.edge_length) + "_G_temperature_array"), G_temperature_array)
+				np.save(str(self.file_prefix+str(int(restart_time))+'_x='+str(self.iron_doping_level)+'_L='+str(self.edge_length) + "_nn_pair_corr_abs_abc_temperature_array"), nn_pair_corr_abs_abc_temperature_array)
+				np.save(str(self.file_prefix+str(int(restart_time))+'_x='+str(self.iron_doping_level)+'_L='+str(self.edge_length) + "_nn_pair_corr_ac_temperature_array"), nn_pair_corr_ac_temperature_array)
+				np.save(str(self.file_prefix+str(int(restart_time))+'_x='+str(self.iron_doping_level)+'_L='+str(self.edge_length) + "_nn_pair_corr_b_temperature_array"), nn_pair_corr_b_temperature_array)
+				np.save(str(self.file_prefix+str(int(restart_time))+'_x='+str(self.iron_doping_level)+'_L='+str(self.edge_length) + "_temperature_sweep_array"), temperature_sweep_array)
+		#write to a completion file
+		os.remove(self.file_prefix+str(str(int(restart_time))+'_x='+str(self.iron_doping_level)+'_L='+str(self.edge_length) + "_incomplete.txt"))
+		f = open(self.file_prefix+str(str(int(restart_time))+'_x='+str(self.iron_doping_level)+'_L='+str(self.edge_length) + "_complete.txt"),'a')
+		f.write("I'm all done, and i might put more info here later...\n")
+		f.close()
+
+
 	def random_ijk_list_generator(self):
 		random_ijk_list = self.random_ijk_list
 		edge_length = self.edge_length

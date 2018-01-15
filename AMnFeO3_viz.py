@@ -21,6 +21,7 @@ files = os.listdir('.')
 incomplete = []
 complete = []
 for i in files:
+	
 	if (re.search('A_tempe', i)):
 		print(i)
 		file_prefix = i[:-24]
@@ -34,6 +35,9 @@ for i in files:
 		file_time = file_prefix.split('x=')[0].split('_')[-2]
 		incomplete.append([i, time.ctime(int(file_time))])
 
+		
+incomplete.sort()
+complete.sort()
 print("***incomplete files:")
 [print(i) for i in incomplete]
 print("***complete files:")
