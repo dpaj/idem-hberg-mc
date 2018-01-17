@@ -8,8 +8,8 @@ import re
 def write_then_run(run_parameters_file):
 	with open(run_parameters_file) as json_file:  
 		run_parameters = json.load(json_file)	
-	print(str("multirestart_"+my_keyword+"_x="+run_parameters["iron_doping_level"]\
-	+"_L="+run_parameters["edge_length"]+".py"))
+	print(str("multirestart_"+my_keyword+"_x="+str(run_parameters["iron_doping_level"])\
+	+"_L="+str(run_parameters["edge_length"])+".py"))
 	exit()
 	f.write('run_parameters_file ='+run_parameters_file)
 
