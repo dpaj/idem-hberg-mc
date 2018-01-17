@@ -3,6 +3,7 @@ from idem_hberg_mc import *
 import numpy as np
 import json
 import re
+import subprocess
 
 
 def write_then_run(run_parameters_file):
