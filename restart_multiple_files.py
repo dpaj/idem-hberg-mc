@@ -2,6 +2,7 @@ from __future__ import print_function
 from idem_hberg_mc import *
 import numpy as np
 import json
+import re
 
 my_keyword = "NMFO_MnFe=0"
 
