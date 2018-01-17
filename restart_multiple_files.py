@@ -15,7 +15,7 @@ for i in files:
 		
 json_files.sort()
 
-files_to_run.append = []
+files_to_run = []
 for i in json_files:
 	if (re.search(my_keyword, i)):
 		files_to_run.append(i)
