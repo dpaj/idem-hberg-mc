@@ -4,25 +4,6 @@ import numpy as np
 import json
 import re
 
-my_keyword = "NMFO_MnFe=0"
-
-files = os.listdir('.')
-json_files = []
-for i in files:
-	if (re.search("json", i)):
-		json_files.append(i)
-
-		
-json_files.sort()
-
-files_to_run = []
-for i in json_files:
-	if (re.search(my_keyword, i)):
-		files_to_run.append(i)
-
-for i in files_to_run:
-	print(i)
-	write_the_run(i)
 
 def write_the_run(run_parameters_file):
 	
@@ -106,3 +87,26 @@ def write_the_run(run_parameters_file):
 	E_temperature_array = E_temperature_array, A_temperature_array = A_temperature_array, B_temperature_array = B_temperature_array, C_temperature_array = C_temperature_array, G_temperature_array = G_temperature_array, \
 	nn_pair_corr_abs_abc_temperature_array = nn_pair_corr_abs_abc_temperature_array, nn_pair_corr_ac_temperature_array = nn_pair_corr_ac_temperature_array, nn_pair_corr_b_temperature_array = nn_pair_corr_b_temperature_array, \
 	temperature_sweep_array = temperature_sweep_array, temperature_last_completed = temperature_last_completed)
+
+
+
+
+my_keyword = "NMFO_MnFe=0"
+
+files = os.listdir('.')
+json_files = []
+for i in files:
+	if (re.search("json", i)):
+		json_files.append(i)
+
+		
+json_files.sort()
+
+files_to_run = []
+for i in json_files:
+	if (re.search(my_keyword, i)):
+		files_to_run.append(i)
+
+for i in files_to_run:
+	print(i)
+	write_the_run(i)
