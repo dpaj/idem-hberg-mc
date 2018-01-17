@@ -14,12 +14,12 @@ def write_then_run(run_parameters_file):
 	
 	f = open(restart_file_name_to_write, 'w')
 	
-	f.write('run_parameters_file ='+run_parameters_file)
 	f.write('from __future__ import print_function')
-	f.write('f.write('from idem_hberg_mc import *')
+	f.write('from idem_hberg_mc import *')
 	f.write('import numpy as np')
 	f.write('import json')
 	f.write('import re')
+	f.write('run_parameters_file ='+run_parameters_file)
 	exit()
 	file_with_xL = run_parameters_file.split('_run_parameters')[0]
 	print(file_with_xL)
