@@ -3,6 +3,18 @@ from idem_hberg_mc import *
 import numpy as np
 import json
 
+my_keyword = "NMFO_MnFe=0"
+
+files = os.listdir('.')
+json_files = []
+for i in files:
+	
+	if (re.search("json", i)):
+		json_files.append(i)
+
+		
+json_files.sort()
+print(json_files)
 
 """
 run_parameters_file = 'LMFO_stop_then_restart_1516024899_x=0.0_L=6_run_parameters.json'
