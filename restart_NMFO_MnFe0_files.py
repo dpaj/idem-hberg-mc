@@ -21,7 +21,7 @@ def write_then_run(run_parameters_file):
 	f.write('import re\n')
 	f.write('run_parameters_file ='+run_parameters_file+'\n')
 	f.write('\n')
-	f.write('file_with_xL = run_parameters_file.split('_run_parameters')[0]\n')
+	f.write('file_with_xL = run_parameters_file.split("_run_parameters")[0]\n')
 	f.write('print(file_with_xL)\n')
 	f.write('\n')
 	f.write('with open(run_parameters_file) as json_file:  \n')
