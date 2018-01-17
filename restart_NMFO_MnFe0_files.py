@@ -11,7 +11,7 @@ def write_then_run(run_parameters_file):
 	restart_file_name_to_write = (str("multirestart_"+my_keyword+"_x="+str(run_parameters["iron_doping_level"])\
 	+"_L="+str(run_parameters["edge_length"])+".py"))
 	
-	
+	print(restart_file_name_to_write)
 	f = open(restart_file_name_to_write, 'w')
 	
 	f.write('from __future__ import print_function\n')
