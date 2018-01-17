@@ -73,7 +73,7 @@ def write_then_run(run_parameters_file):
 	f.write('	# run_parameters = json.load(json_file)\n')
 	f.write('\n')
 	f.write('\n')
-	f.write('run_status_file_data = np.genfromtxt(str(file_prefix+str(int(start_time))+"_x="+str(iron_doping_level)+"_L="+str(edge_length) + "_run_status.txt"), skip_header = 2, delimiter=',')\n')
+	f.write('run_status_file_data = np.genfromtxt(str(file_prefix+str(int(start_time))+"_x="+str(iron_doping_level)+"_L="+str(edge_length) + "_run_status.txt"), skip_header = 2, delimiter=",")\n')
 	f.write('\n')
 	f.write('print(run_status_file_data)\n')
 	f.write('\n')
