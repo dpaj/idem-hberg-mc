@@ -169,7 +169,7 @@ temperature_steps=101
 equilibration_steps=200
 number_of_angle_states=100
 magnetic_field=np.array([0.0,0.0,0.0])
-edge_length = 22
+edge_length = 10
 
 anisotropy_symmetry = "Pnma"
 
