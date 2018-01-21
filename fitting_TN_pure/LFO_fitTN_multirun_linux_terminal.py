@@ -173,11 +173,11 @@ edge_length = 22
 
 anisotropy_symmetry = "Pnma"
 
-TN_LMO = 138.0 #for LMO I want to go from from 50 above to 50 below seems reasonable
+TN_LMO = 138.0 
 TN_NMO = 82.0
-TN_LFO = 738.0
+TN_LFO = 738.0 #for LFO I want to go from from 100 above to 100 below seems reasonable
 TN_NFO = 689.0
-iron_doping_level = 0
+iron_doping_level = 1.0
 wait_between_file_runs = 15#seconds
 
 superexchange_list = La_paper.return_superexchange_list_MnFe0
@@ -185,11 +185,11 @@ J_scale_factor_list = [0.9,0.95,1.0,1.05,1.1]
 
 file_prefix_list = []
 for i in J_scale_factor_list:
-	file_prefix_list.append("LMO_fitTN_Jscale="+str(i))
+	file_prefix_list.append("LFO_fitTN_Jscale="+str(i))
 
-#the rough guess of the T_N for the different scalings is 124, 131.1, 138, 144.9, 151.8
-max_temperature_to_run = 200.0
-min_temperature_to_run = 100.0
+#the rough guess of the T_N for the different scalings is ([ 664.2,  701.1,  738. ,  774.9,  811.8])
+max_temperature_to_run = 900.0
+min_temperature_to_run = 600.0
 for J_s_f_idx, J_scale_factor in J_scale_factor_list:
 	np.multiply(J_scale_factor, superexchange_list)
 	file_prefix = file_prefix_list[J_s_f_idx]

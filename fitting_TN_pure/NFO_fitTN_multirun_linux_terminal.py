@@ -160,10 +160,10 @@ Nd_paper.DFe_hat = np.array([1.882,1.2248,0.332])
 Nd_paper.normalize_hat()
 print(Nd_paper.DMn_len)
 
-superexchange_list = La_paper.return_superexchange_list()
+superexchange_list = Nd_paper.return_superexchange_list()
 print(superexchange_list)
 
-single_ion_anisotropy_len_0, single_ion_anisotropy_len_1, single_ion_anisotropy_hat_0, single_ion_anisotropy_hat_1 = La_paper.DFe_len, La_paper.DMn_len, La_paper.DFe_hat, La_paper.DMn_hat
+single_ion_anisotropy_len_0, single_ion_anisotropy_len_1, single_ion_anisotropy_hat_0, single_ion_anisotropy_hat_1 = Nd_paper.DFe_len, Nd_paper.DMn_len, Nd_paper.DFe_hat, Nd_paper.DMn_hat
 
 temperature_steps=101
 equilibration_steps=200
@@ -173,23 +173,23 @@ edge_length = 22
 
 anisotropy_symmetry = "Pnma"
 
-TN_LMO = 138.0 #for LMO I want to go from from 50 above to 50 below seems reasonable
+TN_LMO = 138.0 
 TN_NMO = 82.0
 TN_LFO = 738.0
-TN_NFO = 689.0
-iron_doping_level = 0
+TN_NFO = 689.0 #for NFO I want to go from from 100 above to 100 below seems reasonable
+iron_doping_level = 1.0
 wait_between_file_runs = 15#seconds
 
-superexchange_list = La_paper.return_superexchange_list_MnFe0
+superexchange_list = Nd_paper.return_superexchange_list_MnFe0
 J_scale_factor_list = [0.9,0.95,1.0,1.05,1.1]
 
 file_prefix_list = []
 for i in J_scale_factor_list:
-	file_prefix_list.append("LMO_fitTN_Jscale="+str(i))
+	file_prefix_list.append("NFO_fitTN_Jscale="+str(i))
 
-#the rough guess of the T_N for the different scalings is 124, 131.1, 138, 144.9, 151.8
-max_temperature_to_run = 200.0
-min_temperature_to_run = 100.0
+#the rough guess of the T_N for the different scalings is ([ 620.1 ,  654.55,  689.  ,  723.45,  757.9 ])
+max_temperature_to_run = 850.0
+min_temperature_to_run = 550.0
 for J_s_f_idx, J_scale_factor in J_scale_factor_list:
 	np.multiply(J_scale_factor, superexchange_list)
 	file_prefix = file_prefix_list[J_s_f_idx]
