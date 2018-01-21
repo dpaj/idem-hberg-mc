@@ -158,10 +158,10 @@ Nd_paper.DMn_hat = np.array([1.882,1.2248,0.332])
 Nd_paper.DFe_len = 0.004* 11.605
 Nd_paper.DFe_hat = np.array([1.882,1.2248,0.332])
 Nd_paper.normalize_hat()
-print(Nd_paper.DMn_len)
+#print(Nd_paper.DMn_len)
 
 superexchange_list = Nd_paper.return_superexchange_list()
-print(superexchange_list)
+#print(superexchange_list)
 
 single_ion_anisotropy_len_0, single_ion_anisotropy_len_1, single_ion_anisotropy_hat_0, single_ion_anisotropy_hat_1 = Nd_paper.DFe_len, Nd_paper.DMn_len, Nd_paper.DFe_hat, Nd_paper.DMn_hat
 
@@ -180,7 +180,7 @@ TN_NFO = 689.0 #for NFO I want to go from from 100 above to 100 below seems reas
 iron_doping_level = 1.0
 wait_between_file_runs = 15#seconds
 
-superexchange_list = Nd_paper.return_superexchange_list_MnFe0
+superexchange_list = Nd_paper.return_superexchange_list_MnFe0()
 J_scale_factor_list = [0.9,0.95,1.0,1.05,1.1]
 
 file_prefix_list = []
@@ -190,7 +190,7 @@ for i in J_scale_factor_list:
 #the rough guess of the T_N for the different scalings is ([ 620.1 ,  654.55,  689.  ,  723.45,  757.9 ])
 max_temperature_to_run = 850.0
 min_temperature_to_run = 550.0
-for J_s_f_idx, J_scale_factor in J_scale_factor_list:
+for J_s_f_idx, J_scale_factor in enumerate(J_scale_factor_list):
 	np.multiply(J_scale_factor, superexchange_list)
 	file_prefix = file_prefix_list[J_s_f_idx]
 	write_and_run_file(iron_doping_level, edge_length, \
