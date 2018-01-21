@@ -185,7 +185,7 @@ J_scale_factor_list = [0.9,0.95,1.0,1.05,1.1]
 
 file_prefix_list = []
 for i in J_scale_factor_list:
-	file_prefix_list.append("NFO_fitTN_Jscale="+str(i))
+	file_prefix_list.append("NFO_fitTN_Jscale="+str(i)+"_")
 
 #the rough guess of the T_N for the different scalings is ([ 620.1 ,  654.55,  689.  ,  723.45,  757.9 ])
 max_temperature_to_run = 850.0
