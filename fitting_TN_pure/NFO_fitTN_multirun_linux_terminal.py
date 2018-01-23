@@ -191,11 +191,12 @@ for i in J_scale_factor_list:
 max_temperature_to_run = 850.0
 min_temperature_to_run = 550.0
 for J_s_f_idx, J_scale_factor in enumerate(J_scale_factor_list):
-	superexchange_list = np.multiply(J_scale_factor, superexchange_list)
+	superexchange_list_scaled = np.multiply(J_scale_factor, superexchange_list)
+	superexchange_list_scaled = superexchange_list_scaled.tolist()
 	file_prefix = file_prefix_list[J_s_f_idx]
 	write_and_run_file(iron_doping_level, edge_length, \
 	single_ion_anisotropy_len_0, single_ion_anisotropy_len_1, single_ion_anisotropy_hat_0, single_ion_anisotropy_hat_1, \
-	superexchange_list, \
+	superexchange_list_scaled, \
 	file_prefix, \
 	anisotropy_symmetry, \
 	max_temperature_to_run, min_temperature_to_run, temperature_steps, equilibration_steps)
