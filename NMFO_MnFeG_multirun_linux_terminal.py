@@ -125,10 +125,6 @@ temperature_max, temperature_min, temperature_steps, equilibration_steps):
 	f.write('my_lattice.temperature_sweep(temperature_max='+temperature_max+', temperature_min='+temperature_min+', temperature_steps='+temperature_steps+', \\\n')
 	f.write('equilibration_steps='+equilibration_steps+', number_of_angle_states=100, magnetic_field=np.array([0.0,0.0,0.0]))\n')
 	f.close()
-	if os.name == 'nt':
-		print('subprocess.call(r"nohup python dummy.py & disown", shell=True, stdout=subprocess.PIPE)')
-	elif os.name == 'posix':
-		subprocess.call(r"nohup python "+the_file_name_used+" & disown", shell=True, stdout=subprocess.PIPE)
 
 
 #La values from my paper
@@ -150,7 +146,7 @@ Nd_paper = make_parameter_list()
 Nd_paper.JFeFeb = 5.93 * 11.605 #converting meV to Kelvins
 Nd_paper.JFeFeac = 6.57 * 11.605 #converting meV to Kelvins
 Nd_paper.JMnMnb = 1.55 * 11.605 #converting meV to Kelvins
-Nd_paper.JMnMnac = -1.31 * 11.605 #converting meV to Kelvins
+Nd_paper.JMnMnac = -0.95 * 11.605 #converting meV to Kelvins
 Nd_paper.JMnFeb = 0.87 * 11.605 #converting meV to Kelvins
 Nd_paper.JMnFeac = 4.16 * 11.605 #converting meV to Kelvins
 Nd_paper.DMn_len = -0.158* 11.605
@@ -183,7 +179,7 @@ max_temperatures_to_run = np.linspace(TN_NMO+50, TN_NFO+100,11)
 min_temperatures_to_run = np.ones(11)
 
 print(x_values_to_run, max_temperatures_to_run, min_temperatures_to_run)
-wait_between_file_runs = 15#seconds
+wait_between_file_runs = 0#seconds
 file_prefix_list = ["NMFO_MnFe=G_"]
 for sx_fn_idx, superexchange_function in enumerate([Nd_paper.return_superexchange_list_MnFeG]):
 	superexchange_list = superexchange_function()

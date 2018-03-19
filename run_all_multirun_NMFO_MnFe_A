@@ -1,0 +1,1 @@
+for f in multirun_NMFO_MnFe=A_*.py; do nohup python "$f" & disown; done
